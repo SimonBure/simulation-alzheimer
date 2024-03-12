@@ -7,7 +7,7 @@ def hill_fct_migration(concentration: float, coefficients: tuple) -> float:
     nucleus.
     :param concentration: float and variable of the Hill function. Here it is the concentration of ATM dimers in the PC.
     :param coefficients: tuple of 3 elements containing the coefficient of the Hill function. Must be in order a, b, n
-    :return: rate of migration, in h⁻¹.
+    :return: float representing the rate of migration, in h⁻¹.
     """
     a = coefficients[0]
     b = coefficients[1]
@@ -21,7 +21,7 @@ def hill_fct_dimer_formation(concentration: float, coefficients: tuple) -> float
     :param concentration: float and variable of the Hill function. Here it is the concentration of ATM-ApoE complexes in
         the PC.
     :param coefficients: tuple of 3 elements containing the coefficient of the Hill function. Must be in order a, b, n
-    :return: rate of dimerisation, in h⁻¹.
+    :return: float representing the rate of dimerisation, in h⁻¹.
     """
     a = coefficients[0]
     b = coefficients[1]
@@ -29,28 +29,44 @@ def hill_fct_dimer_formation(concentration: float, coefficients: tuple) -> float
     return (a * concentration ** n) / (b ** n + concentration ** n)
 
 
-def compartmental_simulation(duration: int, step: float = 1e-3) -> dict:
+def irradiation_stress(time: float, coefficients: tuple) -> float:
+    """
+    Calculates the value of the irradiation stress using a gaussian function.
+    :param time: float giving the actual time of the simulation.
+    :param coefficients: tuple of 3 elements containing the coefficient of the Gaussian function. Must be in order a_s,
+        m_s, sigma_s.
+    :return: float representing the value of the irradiation induced stress.
+    """
+    a_s = coefficients[0]  # intensity of the irradiation
+    m_s = coefficients[1]  # time when the irradiation occurs
+    sigma_s = coefficients[2]  # rapidity of the irradiation effects
+    return a_s * np.exp(-(time - m_s) ** 2 / (2 * sigma_s ** 2))
+
+
+def compartmental_simulation(duration: float, time_step: float = 1 / 60) -> dict:
     """
     Simulate the evolution of the Alzheimer compartmental model for the given duration.
-    :param duration: int giving the number of steps for the simulation
-    :param step: float representing the time step between 2 computations
-    :return: dictionary containing the data arrays of all the 7 compartments
+    :param duration: float giving the time when the simulation must stop, given in hours.
+    :param time_step: float representing the time step between 2 computations, given in hours. Default to 1 minute.
+    :return: dictionary containing the data arrays of all the 7 compartments.
     """
     # Coefficients definition
     lam = 15  # constant source of ATM dimers in cytoplasm
     d0 = 0.05  # rate of ATM dimers degradation
     d1 = 0.3  # rate of ATM monomers degradation in the nucleus
     k1 = 0.01  # rate of ATM monomers re-dimerisation
-    coef2 = (400, 0.4, 15)  # parameters for the hill function k2
+    migration_pc_coefs = (400, 0.4, 15)  # parameters for the hill function k2
     # Migration rate of the ATM monomers from the cytoplasm to the PC
-    k2 = lambda concentration: hill_fct_dimer_formation(concentration, coef2)  # lambda function to lighten the notation
-    coef3 = (80, 0.5, 5)
+    k2 = lambda concentration: hill_fct_dimer_formation(concentration, migration_pc_coefs)  # lighten code with lambda
+    migration_nuc_coefs = (80, 0.5, 5)
     # Migration rate of the ATM monomers from the PC to the nucleus
-    k3 = lambda concentration: hill_fct_dimer_formation(concentration, coef3)
+    k3 = lambda concentration: hill_fct_dimer_formation(concentration, migration_nuc_coefs)
     k4 = 0.05  # rate of ATM-ApoE complexes formation
-    coef5 = (0.4, 150, 15)
+    cplx_formation_coefs = (0.4, 150, 15)
     # Dimerisation rate of the ATM monomers inside the PC
-    k5 = lambda concentration: hill_fct_dimer_formation(concentration, coef5)
+    k5 = lambda concentration: hill_fct_dimer_formation(concentration, cplx_formation_coefs)
+    cs = 0.002  # rate of protein dissociation during constant stress
+    irradiation_coefs = (0.8, 9, 2)  # parameters for the gaussian representation of the irradiation stress
 
     # Initial conditions
     dc = 300  # ATM dimers concentration in cytoplasm
@@ -62,33 +78,37 @@ def compartmental_simulation(duration: int, step: float = 1e-3) -> dict:
     da = 0  # ATM dimers concentration in PC
 
     # Array for storing data of the simulation
-    dc_array = np.zeros(duration, dtype='float')
-    mc_array = np.zeros(duration, dtype='float')
-    ma_array = np.zeros(duration, dtype='float')
-    mn_array = np.zeros(duration, dtype='float')
-    a_array = np.zeros(duration, dtype='float')
-    ca_array = np.zeros(duration, dtype='float')
-    da_array = np.zeros(duration, dtype='float')
+    dc_array = [dc]
+    mc_array = [mc]
+    ma_array = [ma]
+    mn_array = [mn]
+    a_array = [a]
+    ca_array = [ca]
+    da_array = [da]
+
+    time_simu = 0
 
     # Simulation
-    for i in range(duration):
-        # Array filling
-        dc_array[i] = dc
-        mc_array[i] = mc
-        ma_array[i] = ma
-        mn_array[i] = mn
-        a_array[i] = a
-        ca_array[i] = ca
-        da_array[i] = da
-
+    while time_simu < duration:
         # Update rule using Euler explicit numerical scheme
-        dc += step * (lam - d0 * dc + 0.5 * k1 * mc ** 2)
-        mc += step * (- k1 * mc ** 2 - k2(da) * mc)
-        ma += step * (k2(da) * mc - k3(da) * ma - k4 * a * ma - k5(ca) * ma ** 2)
-        mn += step * (k3(da) * ma - d1 * mn)
-        a += step * (- k4 * ma * a)
-        ca += step * (k4 * ma * a)
-        da += step * (0.5 * k5(ca) * ma ** 2)
+        dc += time_step * (lam - d0 * dc + 0.5 * k1 * mc ** 2)
+        mc += time_step * (- k1 * mc ** 2 - k2(da) * mc)
+        ma += time_step * (k2(da) * mc - k3(da) * ma - k4 * a * ma - k5(ca) * ma ** 2)
+        mn += time_step * (k3(da) * ma - d1 * mn)
+        a += time_step * (- k4 * ma * a)
+        ca += time_step * (k4 * ma * a)
+        da += time_step * (0.5 * k5(ca) * ma ** 2)
+
+        time_simu += time_step
+
+        # Array filling
+        dc_array.append(dc)
+        mc_array.append(mc)
+        ma_array.append(ma)
+        mn_array.append(mn)
+        a_array.append(a)
+        ca_array.append(ca)
+        da_array.append(da)
 
     return {'Dc': dc_array,
             'Mc': mc_array,
@@ -107,5 +127,5 @@ if __name__ == "__main__":
     assert hill_fct_migration(concentration1, coef1) - 12 / 5 < 1e-5
 
     # Tests of the compartmental simulations
-    test_simulation = compartmental_simulation(10, step=2)
-    print(test_simulation["Dc"])
+    test_simulation = compartmental_simulation(10, time_step=2)
+    print(test_simulation["Da"])
