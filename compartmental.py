@@ -1,5 +1,7 @@
+import matplotlib.figure
 import numpy as np
 from matplotlib import pyplot as plt
+
 
 def hill_fct_migration(concentration: float, coefficients: tuple) -> float:
     """
@@ -56,15 +58,9 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60) -> dict
     d1 = 0.3  # rate of ATM monomers degradation in the nucleus
     k1 = 0.01  # rate of ATM monomers re-dimerisation
     migration_pc_coefs = (400, 0.4, 15)  # parameters for the hill function k2
-    # Migration rate of the ATM monomers from the cytoplasm to the PC
-    k2 = lambda concentration: hill_fct_dimer_formation(concentration, migration_pc_coefs)  # lighten code with lambda
-    migration_nuc_coefs = (80, 0.5, 5)
-    # Migration rate of the ATM monomers from the PC to the nucleus
-    k3 = lambda concentration: hill_fct_dimer_formation(concentration, migration_nuc_coefs)
+    migration_nuc_coefs = (80, 0.5, 5)  # parameters for the hill function k3
     k4 = 0.05  # rate of ATM-ApoE complexes formation
     cplx_formation_coefs = (0.4, 150, 15)
-    # Dimerisation rate of the ATM monomers inside the PC
-    k5 = lambda concentration: hill_fct_dimer_formation(concentration, cplx_formation_coefs)
     cs = 0.002  # rate of protein dissociation during constant stress
     irradiation_coefs = (0.8, 9, 2)  # parameters for the gaussian representation of the irradiation stress
 
@@ -75,7 +71,7 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60) -> dict
     mn = 0  # ATM monomers concentration in nucleus
     a = 200  # ApoE concentration around the nucleus
     ca = 0  # ATM-ApoE complex concentration in PC
-    da = 0  # ATM dimers concentration in PC
+    da = 300  # ATM dimers concentration in PC
 
     # Array for storing data of the simulation
     dc_array = [dc]
@@ -90,16 +86,22 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60) -> dict
 
     # Simulation
     while time_simu < duration:
-        # Update rule using Euler explicit numerical scheme
-        dc += time_step * (lam - d0 * dc + 0.5 * k1 * mc ** 2)
-        mc += time_step * (- k1 * mc ** 2 - k2(da) * mc)
-        ma += time_step * (k2(da) * mc - k3(da) * ma - k4 * a * ma - k5(ca) * ma ** 2)
-        mn += time_step * (k3(da) * ma - d1 * mn)
-        a += time_step * (- k4 * ma * a)
-        ca += time_step * (k4 * ma * a)
-        da += time_step * (0.5 * k5(ca) * ma ** 2)
-
         time_simu += time_step
+
+        # Non-constant rates
+        k2 = hill_fct_migration(da, migration_pc_coefs)  # migration rate of the ATM monomers from cytoplasm into the PC
+        k3 = hill_fct_migration(da, migration_nuc_coefs)  # migration rate of the ATM monomers from PC into the nucleus
+        k5 = hill_fct_dimer_formation(ca, cplx_formation_coefs)  # dimerisation rate of the ATM monomers inside the PC
+        g = cs + irradiation_stress(time_simu, irradiation_coefs)  # stress factor: constant stress + irradiation
+
+        # Update rule using Euler explicit numerical scheme
+        dc += time_step * (lam - d0 * dc + (0.5 * k1 * mc ** 2) - g * dc)
+        mc += time_step * ((-k1 * mc ** 2) - k2 * mc + 2 * g * dc)
+        ma += time_step * (k2 * mc - k3 * ma - k4 * a * ma - (k5 * ma ** 2) + 2 * g * da + g * ca)
+        mn += time_step * (k3 * ma - d1 * mn)
+        a += time_step * (-k4 * ma * a + g * ca)
+        ca += time_step * (k4 * ma * a - g * ca)
+        da += time_step * ((0.5 * k5 * ma ** 2) - g * da)
 
         # Array filling
         dc_array.append(dc)
@@ -110,22 +112,112 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60) -> dict
         ca_array.append(ca)
         da_array.append(da)
 
+    time_array = np.linspace(0, duration, num=len(dc_array))
+
     return {'Dc': dc_array,
             'Mc': mc_array,
             'Ma': ma_array,
             'Mn': mn_array,
             'A': a_array,
             'Ca': ca_array,
-            'Da': da_array}
+            'Da': da_array,
+            'Time': time_array}
+
+
+def plot_cyto_nucleus(data_compartments: dict, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
+    # Data plotting
+    ax.plot(data_compartments['Time'], data_compartments['Dc'], label='Dc', color='blue')
+    ax.plot(data_compartments['Time'], data_compartments['Mc'], label='Mc', color='green')
+    ax.plot(data_compartments['Time'], data_compartments['Mn'], label='Mn', color='red')
+
+    # Titles & labels
+    ax.set_title('Populations evolution in the cytoplasm & nucleus')
+    ax.set_xlabel('Time (h)')
+    ax.set_ylabel('Populations')
+    ax.legend(loc='upper right')
+
+    return ax
+
+
+def plot_perinuclear_crown(data_compartments: dict, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
+    # Data plotting
+    ax.plot(data_compartments['Time'], data_compartments['A'], label='A', color='magenta')
+    ax.plot(data_compartments['Time'], data_compartments['Ca'], label='Ca', color='y')
+    ax.plot(data_compartments['Time'], data_compartments['Da'], label='Da', color='turquoise')
+    ax.plot(data_compartments['Time'], data_compartments['Ma'], label='Ma', color='purple')
+
+    # Titles & labels
+    ax.set_title('Populations evolution in the perinuclear crown')
+    ax.set_xlabel('Time (h)')
+    ax.set_ylabel('Populations')
+    ax.legend(loc='upper right')
+
+    return ax
+
+
+def plot_compartment(data_compartments: dict, compartment: str, title: str = None, download: bool = False):
+    fig, ax = plt.subplots()
+
+    # Increasing the robustness of the function
+    first_compartment = ('cytoplasm', 'cyto', 'nucleus', 'nucl', 'c', 'n')
+
+    if compartment in first_compartment:
+        ax = plot_cyto_nucleus(data_compartments, ax)
+
+    elif compartment.upper() == 'PC':
+        ax = plot_perinuclear_crown(data_compartments, ax)
+
+    elif compartment == 'both' or compartment == 'b':
+        ax = plot_cyto_nucleus(data_compartments, ax)
+        ax = plot_perinuclear_crown(data_compartments, ax)
+        ax.set_title('Populations evolution in all compartments')
+
+    else:
+        raise ValueError('Unknown compartment. Please select a valid compartment between cytoplasm, nucleus and PC.')
+
+    if title is not None:
+        ax.set_title(title)
+
+    if download is True:
+        fig.savefig(f'plot_{compartment}.png')
+
+    plt.show()
 
 
 if __name__ == "__main__":
     # Unit test for the different Hill functions
     coef1 = (3, 1, 2)
+    coef2 = (400, 0.4, 15)
     concentration1 = 2
-    assert hill_fct_migration(concentration1, coef1) == 9 / 13
+    concentration2 = 0
     assert hill_fct_migration(concentration1, coef1) - 12 / 5 < 1e-5
+    assert hill_fct_migration(concentration2, coef2) == 0.4
+
+    # Plotting parameter functions
+    # k2 - k3
+    # concentration = np.linspace(0, 1000, num=1000)
+    # plt.plot(concentration, hill_fct_migration(concentration, coef2))
+    # plt.show()
+
+    # k5
+    # coef3 = (0.4, 150, 15)
+    # concentration = np.linspace(0, 200, num=200)
+    # plt.plot(concentration, hill_fct_dimer_formation(concentration, coef3), color="red")
+    # plt.show()
+
+    # g
+    # coef4 = (0.8, 9, 2)
+    # time = np.linspace(0, 10, num=100)
+    # g_values = irradiation_stress(time, coef4)
+    # plt.plot(time, g_values)
+    # plt.show()
 
     # Tests of the compartmental simulations
-    test_simulation = compartmental_simulation(10, time_step=2)
-    print(test_simulation["Da"])
+    test_simulation = compartmental_simulation(20, 1 / 60)
+    # print(f"Da: {test_simulation['Da']}")
+    # print(f"Ma: {test_simulation['Ma']}")
+    # print(f"Ca: {test_simulation['Ca']}")
+    # print(f"A: {test_simulation['A']}")
+
+    # Tests of the plotting process
+    plot_compartment(test_simulation, 'b', title=None, download=False)
