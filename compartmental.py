@@ -306,7 +306,7 @@ def plot_compartment(data_compartments: dict, title: str = None, download: bool 
     ax_pc = plot_perinuclear_crown(data_compartments, title, ax_pc)
 
     if download is True:
-        fig.savefig(f'plot.png')
+        fig.savefig(f'FIGURES/plot.png')
 
     plt.show()
 
