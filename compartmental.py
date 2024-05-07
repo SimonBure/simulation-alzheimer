@@ -126,7 +126,7 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
     crown_formed = ('formed', 'f')
     crown_not_formed = ('not formed', 'nf', 'no', 'n')
 
-    if initial_crown not in crown_not_formed and initial_crown not in crown_not_formed:
+    if initial_crown not in crown_formed and initial_crown not in crown_not_formed:
         raise ValueError(f"Parameter [initial crown] must be one of the following: {crown_formed} or {crown_not_formed}."
                          f"Input value: {initial_crown}")
 
@@ -152,13 +152,13 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
     statins_coefs = (sta, 9, 4)
 
     # Initial conditions
-    dc = 300  # ATM dimers concentration in cytoplasm
-    a = 0 if initial_crown in crown_formed else 200  # ApoE proteins concentration in PC
-    ca = 200 if initial_crown in crown_not_formed else 0  #
-    da = 300 if initial_crown in crown_not_formed else 0
-    mc = 0  # ATM monomers concentration in cytoplasm
-    ma = 0  # ATM monomers concentration in PC
-    mn = 0  # ATM monomers concentration in nucleus
+    dc = 300  # ATM dimers in cytoplasm
+    a = 200 if initial_crown in crown_formed else 0  # ApoE proteins in PC
+    ca = 200 if initial_crown in crown_not_formed else 0  # ATM-ApoE complexes in PC
+    da = 300 if initial_crown in crown_not_formed else 0  # ATM dimers in PC
+    mc = 0  # ATM monomers in cytoplasm
+    ma = 0  # ATM monomers in PC
+    mn = 0  # ATM monomers in nucleus
 
     # Array for storing data of the simulation
     dc_array = [dc]
@@ -339,11 +339,11 @@ if __name__ == "__main__":
     # plt.show()
 
     # Tests of the compartmental simulations
-    is_irradiated = True
-    antioxidants_dose = 'var'
-    statins_dose = 'var'
-    experimental_conditions = (irradiation, antioxidants_use, statins_use)
-    test_simulation = compartmental_simulation(24, 1 / 60, initial_crown='formed',
+    is_irradiated = False
+    antioxidants_dose = 'no'
+    statins_dose = 'no'
+    experimental_conditions = (is_irradiated, antioxidants_dose, statins_dose)
+    test_simulation = compartmental_simulation(240000, 1 / 60, initial_crown='formed',
                                                experimental=experimental_conditions)
     # print(f"Da: {test_simulation['Da']}")
     # print(f"Ma: {test_simulation['Ma']}")
@@ -351,4 +351,4 @@ if __name__ == "__main__":
     # print(f"A: {test_simulation['A']}")
 
     # Tests of the plotting process
-    plot_compartment(test_simulation, title='irradiation & antioxidants & statins at 9h', download=True)
+    plot_compartment(test_simulation, title='', download=False)
