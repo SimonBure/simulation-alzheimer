@@ -153,9 +153,9 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
 
     # Initial conditions
     dc = 300  # ATM dimers in cytoplasm
-    a = 200 if initial_crown in crown_formed else 0  # ApoE proteins in PC
-    ca = 200 if initial_crown in crown_not_formed else 0  # ATM-ApoE complexes in PC
-    da = 300 if initial_crown in crown_not_formed else 0  # ATM dimers in PC
+    a = 200 if initial_crown in crown_not_formed else 0  # ApoE proteins in PC
+    ca = 200 if initial_crown in crown_formed else 0  # ATM-ApoE complexes in PC
+    da = 300 if initial_crown in crown_formed else 0  # ATM dimers in PC
     mc = 0  # ATM monomers in cytoplasm
     ma = 0  # ATM monomers in PC
     mn = 0  # ATM monomers in nucleus
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     antioxidants_dose = 'no'
     statins_dose = 'no'
     experimental_conditions = (is_irradiated, antioxidants_dose, statins_dose)
-    test_simulation = compartmental_simulation(240000, 1 / 60, initial_crown='formed',
+    test_simulation = compartmental_simulation(100000, 1 / 60, initial_crown='formed',
                                                experimental=experimental_conditions)
     # print(f"Da: {test_simulation['Da']}")
     # print(f"Ma: {test_simulation['Ma']}")
