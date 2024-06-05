@@ -106,7 +106,7 @@ def statin_effect(time: float, coefficients: tuple) -> float:
 
 
 def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial: str = 'nf',
-                             experimental: tuple = (False, 'none', 'none')) -> dict:
+                             experimental: tuple = (False, 'none', 'none')) -> tuple:
     """
     Simulate the evolution of the Alzheimer compartmental model for the given duration.
     :param duration: float giving the time when the simulation must stop, given in hours.
@@ -123,7 +123,7 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
         antioxidant are used. Can also be 'constant', 'const', 'cst', 'c' if the dose is constant or 'variable', 'var',
          'v' if the dose vary with the time of the simulation. Default to 'none'.
         4. stress: boolean indicating whether the cell experiments stress or not
-    :return: dictionary containing the data arrays of all the 7 compartments.
+    :return: first a dictionary containing the data arrays of all the 7 compartments and then a dict for the fixed point
     """
     crown_formed = ('formed', 'f')
     crown_not_formed = ('not formed', 'nf', 'no', 'n')
@@ -248,19 +248,22 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
     time_array = np.linspace(0, duration, num=len(dc_array))
 
     # Equilibrium
-    print(f"Fixed points without stress: {get_fixed_points(params, initial_conditions, False)}")
+    fixed_point_no_stress = get_fixed_points(params, initial_conditions, False)
+    print(f"Fixed points without stress: {fixed_point_no_stress}")
     fixed_point_stress = get_fixed_points(params, initial_conditions, True)
     print(f"Fixed points with stress: {fixed_point_stress[0]}\n{fixed_point_stress[1]}")
     get_existence_conditions(params)
 
-    return {'Dc': dc_array,
+    return ({'Dc': dc_array,
             'Mc': mc_array,
             'Ma': ma_array,
             'Mn': mn_array,
             'A': a_array,
             'Ca': ca_array,
             'Da': da_array,
-            'Time': time_array}
+            'Time': time_array},
+            fixed_point_stress,
+            fixed_point_no_stress)
 
 
 def plot_cyto_nucleus(data_compartments: dict, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
@@ -428,15 +431,17 @@ if __name__ == "__main__":
     # np.random.random
     # initial_conditions = (150, 150, 150, 150, 150, 150, 150)
     # initial_conditions = 'formed'
-    # initial_conditions = 'not formed'
-    simulation = compartmental_simulation(24, 1 / 60, initial=initial_conditions,
-                                          experimental=experimental_conditions)
+    initial_conditions = 'not formed'
+    simulation_results, eq_stress, eq_no_stress = compartmental_simulation(24, 1 / 60, initial=initial_conditions,
+                                                                           experimental=experimental_conditions)
+    print(f"Equilibria when stress is considered:\n{eq_stress}")
+    print(f"Equilibrium without stress:\n{eq_no_stress}")
     # print(f"Da: {test_simulation['Da']}")
     # print(f"Ma: {test_simulation['Ma']}")
     # print(f"Ca: {test_simulation['Ca']}")
     # print(f"A: {test_simulation['A']}")
 
     # Tests of the plotting process
-    plot_compartment(simulation, download=True)
+    plot_compartment(simulation_results, download=True)
 
     # Equilibrium verification
