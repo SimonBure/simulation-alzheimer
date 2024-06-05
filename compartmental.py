@@ -327,6 +327,11 @@ def plot_compartment(data_compartments: dict, download: bool = False):
 
 
 def get_discriminant(parameters: dict) -> float:
+    """
+    Function to compute the value of the discriminant needed to get the value of the equilibrium with stress.
+    :param parameters: dict containing the parameters needed to compute the discriminant.
+    :return: the discriminant value as a float value.
+    """
     discriminant = (((parameters['k3'] - 2 * parameters['k6']) * (parameters['d0'] + parameters['g']))**2 +
                     8 * parameters['k1'] * parameters['d0'] * parameters['g'] * parameters['lam'] *
                     ((parameters['k3'] - parameters['k6']) / parameters['k2'])**2)
@@ -334,6 +339,14 @@ def get_discriminant(parameters: dict) -> float:
 
 
 def get_fixed_points(parameters: dict, init: dict, stress: bool) -> tuple[dict, dict]:
+    """
+    Function to compute the theoretical values of the equilibrium points. I
+    :param parameters: dict containing the parameters needed to compute the equilibrium.
+    :param init: dict of initial values needed to compute the equilibrium.
+    :param stress: bool indicating whether to compute the equilibrium with or without stress.
+    :return: If stress is True then return two dict, each containing a value for the equilibrium. If stress is False
+        then return only one dict of the simple equilibrium.
+    """
     if stress:
         disc = get_discriminant(parameters)
         ma_eq_plus = parameters['k2']**2 * (2 * parameters['k6'] - parameters['k3'] + np.sqrt(disc)) / (2 * parameters['k1'] * parameters['d0'] * (parameters['k3'] - parameters['k6'])**2)
@@ -362,6 +375,10 @@ def get_fixed_points(parameters: dict, init: dict, stress: bool) -> tuple[dict, 
 
 
 def get_existence_conditions(parameters: dict):
+    """
+    Function to write the theoretical conditions on the parameters that are needed for the equilibria to exist.
+    :param parameters: dict containing the parameters needed to verify the conditions.
+    """
     disc = get_discriminant(parameters)
     print("Ma+ exists if 2k6 + np.sqrt(Δ) > k3")
     print(f"Condition fulfilled ? {2 * parameters['k6'] + np.sqrt(disc) > parameters['k3']}")
@@ -400,14 +417,19 @@ if __name__ == "__main__":
     # is_irradiated = True
     is_irradiated = False
     antioxidant_dose = 'no'
+    # antioxidant_dose = 'cst'
+    # antioxidant_dose = 'var'
     statin_dose = 'no'
-    is_stress = True
-    # is_stress = False
+    # statin_dose = 'cst'
+    # statin_dose = 'var'
+    # is_stress = True
+    is_stress = False
     experimental_conditions = (is_irradiated, antioxidant_dose, statin_dose, is_stress)
-    initial_conditions = (150, 150, 150, 150, 150, 150, 150)
+    # np.random.random
+    # initial_conditions = (150, 150, 150, 150, 150, 150, 150)
     # initial_conditions = 'formed'
     # initial_conditions = 'not formed'
-    simulation = compartmental_simulation(24000U, 1 / 60, initial=initial_conditions,
+    simulation = compartmental_simulation(24, 1 / 60, initial=initial_conditions,
                                           experimental=experimental_conditions)
     # print(f"Da: {test_simulation['Da']}")
     # print(f"Ma: {test_simulation['Ma']}")
