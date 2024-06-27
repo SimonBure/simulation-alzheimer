@@ -36,6 +36,8 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
     e3 = e6 = 0.5  # promoting impact of the antioxidant
     f3 = 1  # impact of statin on nucleus permeability
 
+    k1, k2, k3, k4, k5, k6, g = 0, 0, 0, 0, 0, 0, 0
+
     migration_pc_coefficients = (400, 0.4, 15, e2)  # coefficients for the hill function k2
     migration_nucleus_coefficients = (80, 0.5, 5, e3, f3)  # coefficients for the hill function k3
 
@@ -59,7 +61,7 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
     nb_loops_simulation = int(duration / time_step)
 
     # We need an extra slot because initial conditions are in the first slot of compartments_display_arrays
-    compartments_display_arrays = setup_display_arrays(compartments_values, nb_loops_simulation + 1)
+    compartments_display_arrays = setup_display_arrays(compartments_values, nb_loops_simulation)
 
     time_simulation = 0
 
@@ -104,18 +106,16 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
     all_parameters_system = (lam, d0, d1, k1, k2, k3, k4, k5, k6, g)
 
     fixed_point_no_stress = compute_fixed_point_without_stress(all_parameters_system)
-    print(f"Fixed points without stress: {fixed_point_no_stress}")
 
     if is_stress:
         initial_conditions_for_fixed_point = (initial_compartments_values[4], initial_compartments_values[5])
         fixed_points_stress = compute_fixed_points_with_stress(all_parameters_system, initial_conditions_for_fixed_point)
-        print(f"Fixed points with stress: {fixed_point_stress[0]}\n{fixed_point_stress[1]}")
+    else:
+        fixed_points_stress = None
 
     get_existence_conditions(all_parameters_system)
 
-    return (compartments_display_arrays,
-            fixed_points_stress,
-            fixed_point_no_stress)
+    return time_array, compartments_display_arrays, fixed_points_stress, fixed_point_no_stress
 
 
 def setup_initial_compartments_values(initial_crown_configuration) -> tuple:
@@ -136,6 +136,9 @@ def setup_initial_compartments_values(initial_crown_configuration) -> tuple:
 
     elif type(initial_crown_configuration) is tuple:
         dc_initial, mc_initial, ma_initial, mn_initial, a_initial, ca_initial, da_initial = initial_crown_configuration
+
+    else:
+        dc_initial, mc_initial, ma_initial, mn_initial, a_initial, ca_initial, da_initial = 0, 0, 0, 0, 0, 0, 0
 
     return dc_initial, mc_initial, ma_initial, mn_initial, a_initial, ca_initial, da_initial
 
@@ -363,17 +366,18 @@ def compute_irradiation_time_stress(time: float, coefficients: tuple) -> float:
     return a_s * np.exp(-(time - m_s) ** 2 / (2 * sigma_s ** 2))
 
 
-def plot_compartment(data_compartments: dict, download: bool = False):
+# TO-DO Refactor display system into a class ?
+def plot_compartment(simulation_results: tuple, download: bool = False):
     """
     Function of higher level to specify which compartment to plot, a specific title and whether to download the plot or
     not.
-    :param data_compartments: dict containing the results of the simulation.
+    :param simulation_results: dict containing the results of the simulation.
     :param download: boolean indicating whether to download the plot or not.
     """
     fig, (ax_nucl, ax_pc) = plt.subplots(1, 2, figsize=(12, 5))
 
-    ax_nucl = plot_cyto_nucleus(data_compartments, ax_nucl)
-    ax_pc = plot_perinuclear_crown(data_compartments, ax_pc)
+    ax_nucl = plot_cyto_nucleus(simulation_results, ax_nucl)
+    ax_pc = plot_perinuclear_crown(simulation_results, ax_pc)
 
     plt.subplots_adjust(wspace=0.4)  # setting horizontal space between the two plots
 
@@ -382,18 +386,20 @@ def plot_compartment(data_compartments: dict, download: bool = False):
 
     plt.show()
 
+
 # TO-DO Update this function to be used with the new output of
-def plot_cyto_nucleus(data_compartments: dict, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
+def plot_cyto_nucleus(simulation_results: tuple, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
     """
     Function to plot the trajectories of the simulation in the cytoplasm and the nucleus.
-    :param data_compartments: dict containing the results of the simulation.
+    :param simulation_results: dict containing the results of the simulation.
     :param ax: matplotlib.figure.Axes object passed to the function to add the trajectories on it for further display.
     :return: matplotlib.figure.Axes object with trajectories of the simulation in the cytoplasm and the nucleus added.
     """
+    time_array, compartments_display_arrays = simulation_results
     # Data plotting
-    ax.plot(data_compartments['Time'], data_compartments['Dc'], label='Dc', color='blue')
-    ax.plot(data_compartments['Time'], data_compartments['Mc'], label='Mc', color='green')
-    ax.plot(data_compartments['Time'], data_compartments['Mn'], label='Mn', color='red')
+    ax.plot(time_array, compartments_display_arrays[0], label='Dc', color='blue')
+    ax.plot(time_array, compartments_display_arrays[1], label='Mc', color='green')
+    ax.plot(time_array, compartments_display_arrays[3], label='Mn', color='red')
 
     # Titles & labels
     ax.set_title("Populations evolution in the cytoplasm & nucleus}")
@@ -404,18 +410,19 @@ def plot_cyto_nucleus(data_compartments: dict, ax: matplotlib.figure.Axes) -> ma
     return ax
 
 
-def plot_perinuclear_crown(data_compartments: dict, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
+def plot_perinuclear_crown(simulation_results: tuple, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
     """
     Function to plot the trajectories of the simulation in the perinuclear crown.
-    :param data_compartments: dict containing the results of the simulation.
+    :param simulation_results: dict containing the results of the simulation.
     :param ax: matplotlib.figure.Axes object passed to the function to add the trajectories on it for further display.
     :return: matplotlib.figure.Axes object with trajectories of the simulation in the perinuclear crown added.
     """
+    time_array, compartments_display_arrays = simulation_results
     # Data plotting
-    ax.plot(data_compartments['Time'], data_compartments['A'], label='A', color='magenta')
-    ax.plot(data_compartments['Time'], data_compartments['Ca'], label='Ca', color='darkorange')
-    ax.plot(data_compartments['Time'], data_compartments['Da'], label='Da', color='crimson')
-    ax.plot(data_compartments['Time'], data_compartments['Ma'], label='Ma', color='dodgerblue')
+    ax.plot(time_array, compartments_display_arrays[4], label='A', color='magenta')
+    ax.plot(time_array, compartments_display_arrays[5], label='Ca', color='darkorange')
+    ax.plot(time_array, compartments_display_arrays[6], label='Da', color='crimson')
+    ax.plot(time_array, compartments_display_arrays[2], label='Ma', color='dodgerblue')
 
     # Titles & labels
     ax.set_title("Populations evolution in the perinuclear crown")
@@ -480,6 +487,7 @@ def get_existence_conditions(system_parameters: tuple):
 
     disc = compute_discriminant(system_parameters)
 
+    print(f"Discriminant's value:  {disc}")
     print("Ma+ exists if 2k6 + np.sqrt(Δ) > k3")
     print(f"Condition fulfilled ? {2 * k6 + np.sqrt(disc) > k3}")
     print("Ma- exists if 2k6 > np.sqrt(Δ) + k3")
@@ -537,14 +545,17 @@ if __name__ == "__main__":
     # statin_dose_simulation = 'cst'
     # statin_dose_simulation = 'var'
     # is_stress = True
-    is_stress_simulation = False
-    experimental_conditions = (is_irradiated, antioxidant_dose_simulation, statin_dose_simulation, is_stress_simulation)
+    is_stress_simulation = True
+    some_experimental_conditions = (is_irradiated, antioxidant_dose_simulation, statin_dose_simulation,
+                                    is_stress_simulation)
     # np.random.random
     # initial_conditions = (150, 150, 150, 150, 150, 150, 150)
     # initial_conditions = 'formed'
     initial_conditions = 'not formed'
-    simulation_results, eq_stress, eq_no_stress = compartmental_simulation(24, 1 / 60, initial_conditions,
-                                                                           experimental_conditions)
+    a_time_array, some_compartments_results, eq_stress, eq_no_stress = compartmental_simulation(24, 1 / 60,
+                                                                                                initial_conditions,
+                                                                                                some_experimental_conditions)
+    print(f"Example of the simulation results:\n{some_compartments_results}")
     print(f"Equilibria when stress is considered:\n{eq_stress}")
     print(f"Equilibrium without stress:\n{eq_no_stress}")
     # print(f"Da: {test_simulation['Da']}")
@@ -554,4 +565,4 @@ if __name__ == "__main__":
 
     # Tests of the plotting process
     # TO-DO Update plot-compartment to use the new format of simulation_results
-    plot_compartment(simulation_results, download=False)
+    plot_compartment((a_time_array, some_compartments_results), download=False)
