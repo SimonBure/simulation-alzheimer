@@ -3,79 +3,197 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-def migration_monomers(concentration: float, coefficients: tuple, drugs: tuple = (0, 0),
-                       destination: str = None) -> float:
+def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial_crown_configuration: str = 'nf',
+                             experimental_conditions: tuple = (False, 'none', 'none', True)) -> tuple:
     """
-    Function to calculate the rate of migration of monomers between cytoplasm and perinuclear crown (PC) or PC and
-    nucleus.
-    :param concentration: float and variable of the Hill function. Here it is the concentration of ATM dimers in the PC.
-    :param coefficients: tuple of 3 elements containing the coefficient of the Hill function. Must be in order a, b, n.
-        If antioxidant is True, must also contain the coefficient e of the antioxidant.
-    :param drugs: tuple containing the doses of antioxidant and of statin taken. Default to (0, 0).
-    :param destination: string indicating the destination of the monomers migrating. Must be 'pc' or 'nucleus'.
-        Abbreviations 'n' or 'nucl' are permitted for the nucleus.
-    :return: float representing the rate of migration, in h⁻¹.
+    Simulate the evolution of the Alzheimer compartmental model for the given duration.
+    :param duration: float giving the time when the simulation must stop, given in hours.
+    :param time_step: float representing the time step between 2 computations, given in hours. Default to 1 minute.
+    :param initial_crown_configuration: str indicating which initial condition to use. Can be either 'formed', 'f' if
+        you want the perinuclear crown to be formed initially, 'not formed', 'nf', 'no', 'n' if not.
+        You can also give a tuple containing the initial conditions if you want to use customized initial conditions.
+    :param experimental_conditions: tuple containing the indications on the experimental conditions.
+        Elements are the following:
+        1. irradiation: boolean indicating whether to use the irradiation or not. Default to False.
+        2. antioxidant_use: string indicating the way antioxidant are used. Could be 'none', 'no', 'n' if no
+            antioxidant are used. Can also be 'constant', 'const', 'cst', 'c' if the dose is constant or 'variable',
+            'var', 'v' if the dose vary with the time of the simulation. Default to 'none'.
+        3. statin_use: string indicating the way statin are used. Could be 'none', 'no', 'n' if no statins are used.
+            Can also be 'constant', 'const', 'cst', 'c' if the dose is constant or 'variable', 'var', 'v' if the dose
+            vary with the time of the simulation. Default to 'none'.
+        4. stress: boolean indicating whether the cell experiments stress or not. Default to True.
+    :return: first a dictionary containing the data arrays of all the 7 compartments and then a dict for the fixed point
     """
-    # Normal migration rate
-    a = coefficients[0]
-    b = coefficients[1]
-    n = coefficients[2]
-    migration_rate = (b * a ** n) / (a ** n + concentration ** n)
-    e = coefficients[3]  # antioxidant effect
-    f = coefficients[4]  # statin effect
 
-    antioxidant = drugs[0]
-    statin = drugs[1]
+    is_irradiation, antioxidant_using, statin_using, is_stress = experimental_conditions
 
-    # Allowing abbreviations for the migration in the nucleus
-    writing_possibilities_nucleus = ('nucleus', 'n', 'nucl')
-    if destination in writing_possibilities_nucleus:
-        migration_rate *= (1 + e * antioxidant) * (1 + f * statin)
+    # Coefficients definition
+    lam = 15  # constant source of ATM dimers in cytoplasm
+    d0 = 0.05  # rate of ATM dimers degradation
+    d1 = 0.3  # rate of ATM monomers degradation in the nucleus
+    a1 = 0.01  # rate of ATM monomers re-dimerisation
+    e0 = e1 = e2 = e4 = e5 = 20  # inhibiting impact of the antioxidant
+    e3 = e6 = 0.5  # promoting impact of the antioxidant
+    f3 = 1  # impact of statin on nucleus permeability
 
-    elif destination.upper() == 'PC':
-        migration_rate *= 1 / (1 + e * antioxidant)
+    migration_pc_coefficients = (400, 0.4, 15, e2)  # coefficients for the hill function k2
+    migration_nucleus_coefficients = (80, 0.5, 5, e3, f3)  # coefficients for the hill function k3
 
-    return migration_rate
+    a4 = 0.05  # rate of ATM-ApoE complexes formation
+    complex_formation_coefficients = (0.4, 150, 15, e5)
+
+    cs = 0.002  # rate of protein dissociation during constant stress
+    stress_coefficients = (cs, e0)
+
+    cox = 1  # dose of antioxidant
+    antioxidant_coefficients = (cox, 9, 3)  # parameters for the gaussian representation of the antioxidant effect
+
+    sta = 5  # dose of statin
+    statin_coefficients = (sta, 9, 4)
+
+    irradiation_coefficients = (0.8, 9, 2)  # parameters for the gaussian representation of the irradiation stress
+
+    initial_compartments_values = compartments_values = dc, mc, ma, mn, a, ca, da = setup_initial_compartments_values(
+        initial_crown_configuration)
+
+    nb_loops_simulation = int(duration / time_step)
+
+    # We need an extra slot because initial conditions are in the first slot of compartments_display_arrays
+    compartments_display_arrays = setup_display_arrays(compartments_values, nb_loops_simulation + 1)
+
+    time_simulation = 0
+
+    for display_array_index in range(1, nb_loops_simulation):
+        # TODO Class for parameters & the system of 7 compartments
+        parameters_antioxidant_dosage = (antioxidant_coefficients, time_simulation)
+        antioxidant_dose = dose_antioxidant(antioxidant_using, parameters_antioxidant_dosage)
+
+        parameters_statin_dosage = (statin_coefficients, time_simulation)
+        statin_dose = dose_statin(statin_using, parameters_statin_dosage)
+
+        drugs_doses = (antioxidant_dose, statin_dose)
+
+        stress_conditions = (is_stress, is_irradiation)
+        coefficients_update_rates = (migration_pc_coefficients, migration_nucleus_coefficients,
+                                     complex_formation_coefficients, (a1, e1, a4, e4, e6), stress_coefficients,
+                                     irradiation_coefficients)
+        k1, k2, k3, k4, k5, k6, g = update_system_rates(compartments_values, coefficients_update_rates, drugs_doses,
+                                                        stress_conditions, time_simulation)
+
+        # Update rule using Euler explicit numerical scheme
+        dc += time_step * (lam - d0 * dc + (0.5 * k1 * mc ** 2) - g * dc)
+        mc += time_step * ((-k1 * mc ** 2) - k2 * mc + k6 * ma + 2 * g * dc)
+        ma += time_step * (k2 * mc - k3 * ma - k4 * a * ma - (k5 * ma ** 2) - k6 * ma + 2 * g * da + g * ca)
+        mn += time_step * (k3 * ma - d1 * mn)
+        a += time_step * (-k4 * ma * a + g * ca)
+        ca += time_step * (k4 * ma * a - g * ca)
+        da += time_step * ((0.5 * k5 * ma ** 2) - g * da)
+
+        compartments_values = dc, mc, ma, mn, a, ca, da
+
+        # TODO Refactor into a class of display arrays
+        compartments_display_arrays = fill_display_arrays(compartments_display_arrays, display_array_index,
+                                                          compartments_values)
+
+        time_simulation += time_step
+        display_array_index += 1
+
+    time_array = np.linspace(0, duration, num=nb_loops_simulation)
+
+    # To use for fixed point computations
+    all_parameters_system = (lam, d0, d1, k1, k2, k3, k4, k5, k6, g)
+
+    fixed_point_no_stress = compute_fixed_point_without_stress(all_parameters_system)
+    print(f"Fixed points without stress: {fixed_point_no_stress}")
+
+    if is_stress:
+        initial_conditions_for_fixed_point = (initial_compartments_values[4], initial_compartments_values[5])
+        fixed_points_stress = compute_fixed_points_with_stress(all_parameters_system, initial_conditions_for_fixed_point)
+        print(f"Fixed points with stress: {fixed_point_stress[0]}\n{fixed_point_stress[1]}")
+
+    get_existence_conditions(all_parameters_system)
+
+    return (compartments_display_arrays,
+            fixed_points_stress,
+            fixed_point_no_stress)
 
 
-def dimers_formation(concentration: float, coefficients: tuple, antioxidant: float = 0) -> float:
-    """
-    Hill function to calculate the rate of dimers formation in the PC.
-    :param concentration: float and variable of the Hill function. Here it is the concentration of ATM-ApoE complexes in
-        the PC.
-    :param coefficients: tuple of 3 elements containing the coefficient of the Hill function. Must be in order a, b, n.
-    :param antioxidant: float indicating the quantity of antioxidant taken.
-    :return: float representing the rate of dimers formation, in h⁻¹.
-    """
-    # Normal rate of dimers formation
-    a = coefficients[0]
-    b = coefficients[1]
-    n = coefficients[2]
-    dimers_formation_rate = (a * concentration ** n) / (b ** n + concentration ** n)
+def setup_initial_compartments_values(initial_crown_configuration) -> tuple:
+    # Allow abbreviations for initial_crown_configuration
+    crown_formed = ('formed', 'f')
+    crown_not_formed = ('not formed', 'nf', 'no', 'n')
 
-    # Antioxidant effect
-    e = coefficients[3]
-    dimers_formation_rate *= 1 / (1 + e * antioxidant)
+    is_initial_conditions_in_correct_format(initial_crown_configuration)
 
-    return dimers_formation_rate
+    if type(initial_crown_configuration) is str:
+        dc_initial = 300
+        mc_initial = 0
+        ma_initial = 0
+        mn_initial = 0
+        a_initial = 200 if initial_crown_configuration in crown_not_formed else 0
+        ca_initial = 200 if initial_crown_configuration in crown_formed else 0
+        da_initial = 300 if initial_crown_configuration in crown_formed else 0
 
+    elif type(initial_crown_configuration) is tuple:
+        dc_initial, mc_initial, ma_initial, mn_initial, a_initial, ca_initial, da_initial = initial_crown_configuration
 
-def irradiation_stress(time: float, coefficients: tuple) -> float:
-    """
-    Calculates the value of the irradiation stress using a gaussian function.
-    :param time: float giving the actual time of the simulation.
-    :param coefficients: tuple of 3 elements containing the coefficient of the Gaussian function. Must be in order a_s,
-        m_s, sigma_s.
-    :return: float representing the value of the irradiation induced stress.
-    """
-    a_s = coefficients[0]  # intensity of the irradiation
-    m_s = coefficients[1]  # time when the irradiation occurs
-    sigma_s = coefficients[2]  # rapidity of the irradiation effects
-
-    return a_s * np.exp(-(time - m_s) ** 2 / (2 * sigma_s ** 2))
+    return dc_initial, mc_initial, ma_initial, mn_initial, a_initial, ca_initial, da_initial
 
 
-def antioxidant_effect(time: float, coefficients: tuple) -> float:
+def is_initial_conditions_in_correct_format(initial_crown_configuration):
+    crown_formed = ('formed', 'f')
+    crown_not_formed = ('not formed', 'nf', 'no', 'n')
+
+    if type(initial_crown_configuration) is str:
+        if initial_crown_configuration not in crown_formed and initial_crown_configuration not in crown_not_formed:
+            raise ValueError(f"Parameter [initial_crown_configuration] must be one of the following:\n"
+                             f"{crown_formed} or {crown_not_formed}.\n"
+                             f"Input value: {initial_crown_configuration}")
+    elif type(initial_crown_configuration) is tuple:
+        if len(initial_crown_configuration) != 7:
+            raise ValueError(f"Parameter [initial_crown_configuration] must contain initial values for all seven compartments")
+    else:
+        raise TypeError(f"Parameter [initial_crown_configuration] must either be of type str or tuple.\n"
+                        f"Input type: {type(initial_crown_configuration)}")
+
+
+def setup_display_arrays(initial_compartments_values, size_arrays) -> []:
+    compartment_display_arrays = [0] * 7
+    for index, compartment in enumerate(initial_compartments_values):
+        compartment_display_arrays[index] = np.full(size_arrays, compartment)
+
+    return compartment_display_arrays
+
+
+def fill_display_arrays(compartment_display_arrays, index, compartments_values):
+    for i, compartment in enumerate(compartment_display_arrays):
+        compartment[index] = compartments_values[i]
+
+    return compartment_display_arrays
+
+
+def dose_antioxidant(antioxidant_using, antioxidant_dosage_parameters) -> float:
+    coefficients_antioxidant = antioxidant_dosage_parameters[0]
+    time_simulation = antioxidant_dosage_parameters[1]
+
+    # Allow abbreviation for antioxidant_using
+    no_antioxidant = ('none', 'no', '0', 'n')
+    constant_antioxidant = ('constant', 'const', 'cst', 'c')
+    variable_antioxidant = ('variable', 'var', 'v')
+
+    if antioxidant_using in no_antioxidant:
+        antioxidant_dosage = 0
+    elif antioxidant_using in constant_antioxidant:
+        antioxidant_dosage = coefficients_antioxidant[0]
+    elif antioxidant_using in variable_antioxidant:
+        antioxidant_dosage = compute_antioxidant_time_dose(time_simulation, coefficients_antioxidant)
+    else:
+        raise ValueError("Please select a valid use for the antioxidant")
+
+    return antioxidant_dosage
+
+
+def compute_antioxidant_time_dose(time: float, coefficients: tuple) -> float:
     """
     Calculates the value of the antioxidant effects using a Gaussian function.
     :param time: float giving the actual time of the simulation.
@@ -90,7 +208,28 @@ def antioxidant_effect(time: float, coefficients: tuple) -> float:
     return c_aox * np.exp(-(time - m_aox) ** 2 / (2 * sigma_aox ** 2))
 
 
-def statin_effect(time: float, coefficients: tuple) -> float:
+def dose_statin(statin_using, statin_dosage_parameters) -> float:
+    coefficients_statin = statin_dosage_parameters[0]
+    time_simulation = statin_dosage_parameters[1]
+
+    # Allow abbreviation for statin_using
+    no_statin = ('none', 'no', '0', 'n')
+    constant_statin = ('constant', 'const', 'cst', 'c')
+    variable_statin = ('variable', 'var', 'v')
+
+    if statin_using in no_statin:
+        statin_dosage = 0
+    elif statin_using in constant_statin:
+        statin_dosage = coefficients_statin[0]
+    elif statin_using in variable_statin:
+        statin_dosage = compute_statin_time_dose(time_simulation, coefficients_statin)
+    else:
+        raise ValueError("Please select a valid use for the statin")
+
+    return statin_dosage
+
+
+def compute_statin_time_dose(time: float, coefficients: tuple) -> float:
     """
     Calculates the value of the statin effects using a Gaussian function.
     :param time: float giving the actual time of the simulation.
@@ -105,167 +244,145 @@ def statin_effect(time: float, coefficients: tuple) -> float:
     return s_ta * np.exp(-(time - m_ta) ** 2 / (2 * sigma_ta ** 2))
 
 
-def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial: str = 'nf',
-                             experimental: tuple = (False, 'none', 'none')) -> tuple:
+def update_system_rates(compartments_values: tuple, coefficients: tuple, drugs_doses: tuple, stress_conditions: tuple,
+                        time_simulation: float) -> tuple:
+    dc, mc, ma, mn, a, ca, da = compartments_values
+
+    antioxidant_dose = drugs_doses[0]
+
+    migration_pc_coefficients = coefficients[0]
+    migration_nucleus_coefficients = coefficients[1]
+    complex_formation_coefficients = coefficients[2]
+    a1, e1, a4, e4, e6 = coefficients[3]
+    stress_coefficients = coefficients[4]
+    irradiation_coefficients = coefficients[5]
+
+    k1 = a1 / (1 + e1 * antioxidant_dose)  # total rate of dimers formation
+    # Migration rate of the ATM monomers from cytoplasm into the PC
+    k2 = compute_migration_rate_to_pc(da, migration_pc_coefficients, drugs_doses)
+    # Migration rate of the ATM monomers from PC into the nucleus
+    k3 = compute_migration_rate_to_nucleus(da, migration_nucleus_coefficients, drugs_doses)
+    k4 = a4 / (1 + e4 * antioxidant_dose)
+    # Dimers formation  rate of the ATM monomers inside the PC
+    k5 = compute_dimers_formation_rate(ca, complex_formation_coefficients, antioxidant_dose)
+    k6 = e6 * antioxidant_dose  # dispersion caused by the antioxidant
+
+    parameters_stress_dosage = (stress_coefficients, irradiation_coefficients, antioxidant_dose, time_simulation)
+    g = dose_stress(stress_conditions, parameters_stress_dosage)
+
+    return k1, k2, k3, k4, k5, k6, g
+
+
+def compute_migration_rate_to_pc(monomers_concentration: float, migration_coefficients: tuple,
+                                 drugs_doses: tuple) -> float:
     """
-    Simulate the evolution of the Alzheimer compartmental model for the given duration.
-    :param duration: float giving the time when the simulation must stop, given in hours.
-    :param time_step: float representing the time step between 2 computations, given in hours. Default to 1 minute.
-    :param initial: str indicating which initial condition to use. Can be either 'formed', 'f' if you want the
-        perinuclear crown to be formed initially, 'not formed', 'nf', 'no', 'n' if not. You can also give a tuple
-        containing the initial conditions if you want to use customized initial conditions.
-    :param experimental: tuple containing the indications on the experimental conditions. Elements are the following
-        1. irradiation: boolean indicating whether to use the irradiation or not. Default to False.
-        2. antioxidant_use: string indicating the way antioxidant are used. Could be 'none', 'no', 'n' if no
-            antioxidant are used. Can also be 'constant', 'const', 'cst', 'c' if the dose is constant or 'variable', 'var',
-            'v' if the dose vary with the time of the simulation. Default to 'none'.
-        3. statin_use: string indicating the way statin are used. Could be 'none', 'no', 'n' if no
-        antioxidant are used. Can also be 'constant', 'const', 'cst', 'c' if the dose is constant or 'variable', 'var',
-         'v' if the dose vary with the time of the simulation. Default to 'none'.
-        4. stress: boolean indicating whether the cell experiments stress or not
-    :return: first a dictionary containing the data arrays of all the 7 compartments and then a dict for the fixed point
+    Function to calculate the rate of migration of monomers between cytoplasm and perinuclear crown (PC) or PC and
+    nucleus.
+    :param monomers_concentration: float and variable of the Hill function. Here it is the concentration of ATM dimers
+        in the PC.
+    :param migration_coefficients: tuple of 3 elements containing the coefficient of the Hill function.
+        Must be in order a, b, n, e.
+    :param drugs_doses: tuple containing the doses of antioxidant and of statin taken. Default to (0, 0).
+    :return: float representing the rate of migration, in h⁻¹.
     """
-    crown_formed = ('formed', 'f')
-    crown_not_formed = ('not formed', 'nf', 'no', 'n')
+    a = migration_coefficients[0]
+    b = migration_coefficients[1]
+    n = migration_coefficients[2]
+    e = migration_coefficients[3]  # antioxidant effect
 
-    if type(initial) is str and initial not in crown_formed and initial not in crown_not_formed:
-        raise ValueError(f"Parameter [initial crown] must be one of the following: {crown_formed} or {crown_not_formed}."
-                         f"Input value: {initial}")
+    antioxidant_dose = drugs_doses[0]
 
-    irradiation, antioxidant_use, statin_use, stress = experimental
-
-    # Coefficients definition
-    lam = 15  # constant source of ATM dimers in cytoplasm
-    d0 = 0.05  # rate of ATM dimers degradation
-    d1 = 0.3  # rate of ATM monomers degradation in the nucleus
-    a1 = 0.01  # rate of ATM monomers re-dimerisation
-    e0 = e1 = e2 = e4 = e5 = 20  # inhibiting impact of the antioxidant
-    e3 = e6 = 0.5  # promoting impact of the antioxidant
-    f3 = 1  # impact of statin on nucleus permeability
-    migration_pc_coefs = (400, 0.4, 15, e2, f3)  # parameters for the hill function k2
-    migration_nuc_coefs = (80, 0.5, 5, e3, f3)  # parameters for the hill function k3
-    a4 = 0.05  # rate of ATM-ApoE complexes formation
-    cplx_formation_coefs = (0.4, 150, 15, e5)
-    cs = 0.002 if stress else 0  # rate of protein dissociation during constant stress
-    cox = 1  # dose of antioxidant
-    sta = 5  # dose of statin
-    irradiation_coefs = (0.8, 9, 2)  # parameters for the gaussian representation of the irradiation stress
-    antioxidant_coefs = (cox, 9, 3)  # parameters for the gaussian representation of the antioxidant effect
-    statin_coefs = (sta, 9, 4)
-
-    # Initial conditions
-    if type(initial) is str:
-        dc = 300  # ATM dimers in cytoplasm
-        mc = 0  # ATM monomers in cytoplasm
-        ma = 0  # ATM monomers in PC
-        mn = 0  # ATM monomers in nucleus
-        a = 200 if initial in crown_not_formed else 0  # ApoE proteins in PC
-        ca = 200 if initial in crown_formed else 0  # ATM-ApoE complexes in PC
-        da = 300 if initial in crown_formed else 0  # ATM dimers in PC
-    elif type(initial) is tuple:
-        dc, mc, ma, mn, a, ca, da = initial
-
-    initial_conditions = {'Dc0': dc, 'Mc0': mc, 'Ma0': ma, 'Mn0': mn, 'A0': a, 'Ca0': ca, 'Da0': da}
-
-    # Array for storing data of the simulation
-    dc_array = [dc]
-    mc_array = [mc]
-    ma_array = [ma]
-    mn_array = [mn]
-    a_array = [a]
-    ca_array = [ca]
-    da_array = [da]
-
-    time_simu = 0
-
-    # Simulation
-    while time_simu < duration:
-        time_simu += time_step
-
-        # antioxidant dosage
-        no_antioxidant = ('none', 'no', '0', 'n')  # string possibilities for not using antioxidant
-        cst_antioxidant = ('constant', 'const', 'cst', 'c')  # string possibilities for using a constant dose
-        var_antioxidant = ('variable', 'var', 'v')  # string possibilities for using a dynamic dose
-        if antioxidant_use in no_antioxidant:
-            antioxidant = 0
-        elif antioxidant_use in cst_antioxidant:
-            antioxidant = cox
-        elif antioxidant_use in var_antioxidant:
-            antioxidant = antioxidant_effect(time_simu, antioxidant_coefs)
-        else:
-            raise ValueError("Please select a valid use for the antioxidant")
-
-        # Statin dosage
-        no_statin = ('none', 'no', '0', 'n')  # string possibilities for not using antioxidant
-        cst_statin = ('constant', 'const', 'cst', 'c')  # string possibilities for using a constant dose
-        var_statin = ('variable', 'var', 'v')  # string possibilities for using a dynamic dose
-        if statin_use in no_statin:
-            statin = 0
-        elif statin_use in cst_statin:
-            statin = sta
-        elif statin_use in var_statin:
-            statin = statin_effect(time_simu, statin_coefs)
-        else:
-            raise ValueError("Please select a valid use for the statin")
-
-        drugs = (antioxidant, statin)  # tuple of the doses
-
-        # Computing dynamic rates
-        k1 = a1 / (1 + e1 * antioxidant)  # total rate of dimers formation
-        # Migration rate of the ATM monomers from cytoplasm into the PC
-        k2 = migration_monomers(da, migration_pc_coefs, drugs, 'pc')
-        # Migration rate of the ATM monomers from PC into the nucleus
-        k3 = migration_monomers(da, migration_nuc_coefs, drugs, 'nucleus')
-        k4 = a4 / (1 + e4 * antioxidant)
-        # Dimers formation  rate of the ATM monomers inside the PC
-        k5 = dimers_formation(ca, cplx_formation_coefs, antioxidant)
-        k6 = e6 * antioxidant  # dispersion caused by the antioxidant
-        # Stress factor: constant stress + irradiation + antioxidant effects
-        g = cs / (1 + e0 * antioxidant)
-        if irradiation:
-            g += irradiation_stress(time_simu, irradiation_coefs)
-
-        params = {'lam': lam, 'd0': d0, 'd1': d1, 'k1': k1, 'k2': k2, 'k3': k3, 'k4': k4, 'k5': k5, 'k6': k6, 'g': g}
-
-        # Update rule using Euler explicit numerical scheme
-        dc += time_step * (lam - d0 * dc + (0.5 * k1 * mc ** 2) - g * dc)
-        mc += time_step * ((-k1 * mc ** 2) - k2 * mc + k6 * ma + 2 * g * dc)
-        ma += time_step * (k2 * mc - k3 * ma - k4 * a * ma - (k5 * ma ** 2) - k6 * ma + 2 * g * da + g * ca)
-        mn += time_step * (k3 * ma - d1 * mn)
-        a += time_step * (-k4 * ma * a + g * ca)
-        ca += time_step * (k4 * ma * a - g * ca)
-        da += time_step * ((0.5 * k5 * ma ** 2) - g * da)
-
-        # Array filling
-        dc_array.append(dc)
-        mc_array.append(mc)
-        ma_array.append(ma)
-        mn_array.append(mn)
-        a_array.append(a)
-        ca_array.append(ca)
-        da_array.append(da)
-
-    time_array = np.linspace(0, duration, num=len(dc_array))
-
-    # Equilibrium
-    fixed_point_no_stress = get_fixed_points(params, initial_conditions, False)
-    print(f"Fixed points without stress: {fixed_point_no_stress}")
-    fixed_point_stress = get_fixed_points(params, initial_conditions, True)
-    print(f"Fixed points with stress: {fixed_point_stress[0]}\n{fixed_point_stress[1]}")
-    get_existence_conditions(params)
-
-    return ({'Dc': dc_array,
-            'Mc': mc_array,
-            'Ma': ma_array,
-            'Mn': mn_array,
-            'A': a_array,
-            'Ca': ca_array,
-            'Da': da_array,
-            'Time': time_array},
-            fixed_point_stress,
-            fixed_point_no_stress)
+    return ((b * a ** n) / (a ** n + monomers_concentration ** n)) / (1 + e * antioxidant_dose)
 
 
+def compute_migration_rate_to_nucleus(monomers_concentration: float, migration_coefficients: tuple,
+                                      drugs_doses: tuple) -> float:
+    a = migration_coefficients[0]
+    b = migration_coefficients[1]
+    n = migration_coefficients[2]
+    e = migration_coefficients[3]  # antioxidant effect
+    f = migration_coefficients[4]  # statin effect
+
+    antioxidant_dose = drugs_doses[0]
+    statin_dose = drugs_doses[1]
+
+    return ((b * a ** n) / (a ** n + monomers_concentration ** n)) * (1 + e * antioxidant_dose) * (1 + f * statin_dose)
+
+
+def compute_dimers_formation_rate(concentration: float, coefficients: tuple, antioxidant_dose: float = 0) -> float:
+    """
+    Hill function to calculate the rate of dimers formation in the PC.
+    :param concentration: float and variable of the Hill function. Here it is the concentration of ATM-ApoE complexes in
+        the PC.
+    :param coefficients: tuple of 3 elements containing the coefficient of the Hill function. Must be in order a, b, n.
+    :param antioxidant_dose: float indicating the quantity of antioxidant taken.
+    :return: float representing the rate of dimers formation, in h⁻¹.
+    """
+    # Normal rate of dimers formation
+    a = coefficients[0]
+    b = coefficients[1]
+    n = coefficients[2]
+
+    # Antioxidant effect
+    e = coefficients[3]
+    dimers_formation_rate = ((a * concentration ** n) / (b ** n + concentration ** n)) / (1 + e * antioxidant_dose)
+
+    return dimers_formation_rate
+
+
+def dose_stress(stress_conditions, stress_dosage_parameters) -> float:
+    is_stress = stress_conditions[0]
+    is_irradiation = stress_conditions[1]
+    cs = stress_dosage_parameters[0][0]
+    e0 = stress_dosage_parameters[0][1]
+    irradiation_coefficients = stress_dosage_parameters[1]
+    antioxidant_dose = stress_dosage_parameters[2]
+    time_simulation = stress_dosage_parameters[3]
+
+    g = 0
+    if is_stress:
+        g = cs / (1 + e0 * antioxidant_dose)
+        if is_irradiation:
+            g += compute_irradiation_time_stress(time_simulation, irradiation_coefficients)
+
+    return g
+
+
+def compute_irradiation_time_stress(time: float, coefficients: tuple) -> float:
+    """
+    Calculates the value of the irradiation stress using a gaussian function.
+    :param time: float giving the actual time of the simulation.
+    :param coefficients: tuple of 3 elements containing the coefficient of the Gaussian function. Must be in order a_s,
+        m_s, sigma_s.
+    :return: float representing the value of the irradiation induced stress.
+    """
+    a_s = coefficients[0]  # intensity of the irradiation
+    m_s = coefficients[1]  # time when the irradiation occurs
+    sigma_s = coefficients[2]  # rapidity of the irradiation effects
+
+    return a_s * np.exp(-(time - m_s) ** 2 / (2 * sigma_s ** 2))
+
+
+def plot_compartment(data_compartments: dict, download: bool = False):
+    """
+    Function of higher level to specify which compartment to plot, a specific title and whether to download the plot or
+    not.
+    :param data_compartments: dict containing the results of the simulation.
+    :param download: boolean indicating whether to download the plot or not.
+    """
+    fig, (ax_nucl, ax_pc) = plt.subplots(1, 2, figsize=(12, 5))
+
+    ax_nucl = plot_cyto_nucleus(data_compartments, ax_nucl)
+    ax_pc = plot_perinuclear_crown(data_compartments, ax_pc)
+
+    plt.subplots_adjust(wspace=0.4)  # setting horizontal space between the two plots
+
+    if download is True:
+        fig.savefig(f'FIGURES/plot.png')
+
+    plt.show()
+
+# TO-DO Update this function to be used with the new output of
 def plot_cyto_nucleus(data_compartments: dict, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
     """
     Function to plot the trajectories of the simulation in the cytoplasm and the nucleus.
@@ -304,89 +421,83 @@ def plot_perinuclear_crown(data_compartments: dict, ax: matplotlib.figure.Axes) 
     ax.set_title("Populations evolution in the perinuclear crown")
     ax.set_xlabel('Time (h)', fontsize=12)
     ax.set_ylabel('Populations', fontsize=12)
-    ax.legend(loc='upper left',  bbox_to_anchor=(1, 1), fontsize=12)
+    ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
 
     return ax
 
 
-def plot_compartment(data_compartments: dict, download: bool = False):
-    """
-    Function of higher level to specify which compartment to plot, a specific title and whether to download the plot or
-    not.
-    :param data_compartments: dict containing the results of the simulation.
-    :param download: boolean indicating whether to download the plot or not.
-    """
-    fig, (ax_nucl, ax_pc) = plt.subplots(1, 2, figsize=(12, 5))
-
-    ax_nucl = plot_cyto_nucleus(data_compartments, ax_nucl)
-    ax_pc = plot_perinuclear_crown(data_compartments, ax_pc)
-
-    plt.subplots_adjust(wspace=0.4)  # setting horizontal space between the two plots
-
-    if download is True:
-        fig.savefig(f'FIGURES/plot.png')
-
-    plt.show()
-
-
-def get_discriminant(parameters: dict) -> float:
-    """
-    Function to compute the value of the discriminant needed to get the value of the equilibrium with stress.
-    :param parameters: dict containing the parameters needed to compute the discriminant.
-    :return: the discriminant value as a float value.
-    """
-    discriminant = (((parameters['k3'] - 2 * parameters['k6']) * (parameters['d0'] + parameters['g']))**2 +
-                    8 * parameters['k1'] * parameters['d0'] * parameters['g'] * parameters['lam'] *
-                    ((parameters['k3'] - parameters['k6']) / parameters['k2'])**2)
-    return discriminant
-
-
-def get_fixed_points(parameters: dict, init: dict, stress: bool) -> tuple[dict, dict]:
+def compute_fixed_points_with_stress(system_parameters: tuple, initial_a0_ca0: tuple) -> tuple[dict, dict]:
     """
     Function to compute the theoretical values of the equilibrium points. I
-    :param parameters: dict containing the parameters needed to compute the equilibrium.
-    :param init: dict of initial values needed to compute the equilibrium.
-    :param stress: bool indicating whether to compute the equilibrium with or without stress.
+    :param system_parameters: dict containing the parameters needed to compute the equilibrium.
+    :param initial_a0_ca0: tuple of initial values needed to compute the equilibrium.
     :return: If stress is True then return two dict, each containing a value for the equilibrium. If stress is False
         then return only one dict of the simple equilibrium.
     """
-    if stress:
-        disc = get_discriminant(parameters)
-        ma_eq_plus = parameters['k2']**2 * (2 * parameters['k6'] - parameters['k3'] + np.sqrt(disc)) / (2 * parameters['k1'] * parameters['d0'] * (parameters['k3'] - parameters['k6'])**2)
-        ma_eq_neg = parameters['k2']**2 * (2 * parameters['k6'] - parameters['k3'] - np.sqrt(disc)) / (2 * parameters['k1'] * parameters['d0'] * (parameters['k3'] - parameters['k6'])**2)
-        mc_eq_plus = ((parameters['k3'] - parameters['k6']) / parameters['k2']) * ma_eq_plus
-        mc_eq_neg = ((parameters['k3'] - parameters['k6']) / parameters['k2']) * ma_eq_neg
-        mn_eq_plus = (parameters['k3'] / parameters['d1']) * ma_eq_plus
-        mn_eq_neg = (parameters['k3'] / parameters['d1']) * ma_eq_neg
-        da_eq_plus = (parameters['k5'] / 2 * parameters['g']) * ma_eq_plus**2
-        da_eq_neg = (parameters['k5'] / 2 * parameters['g']) * ma_eq_neg**2
-        dc_eq_plus = (parameters['lam'] + (parameters['k1'] / 2) * mc_eq_plus**2) / (parameters['d0'] + parameters['g'])
-        dc_eq_neg = (parameters['lam'] + (parameters['k1'] / 2) * mc_eq_neg ** 2) / (parameters['d0'] + parameters['g'])
-        a_eq_plus = parameters['g'] * (init['A0'] + init['Ca0']) / (parameters['g'] + parameters['k4'] * ma_eq_plus)
-        a_eq_neg = parameters['g'] * (init['A0'] + init['Ca0']) / (parameters['g'] + parameters['k4'] * ma_eq_neg)
-        ca_eq_plus = init['A0'] + init['Ca0'] - a_eq_plus
-        ca_eq_neg = init['A0'] + init['Ca0'] - a_eq_neg
-        eq_plus = {'Dc': dc_eq_plus, 'Mc': mc_eq_plus, 'Ma': ma_eq_plus, 'Mn': mn_eq_plus, 'A': a_eq_plus,
-                   'Ca': ca_eq_plus, 'Da': da_eq_plus}
-        eq_neg = {'Dc': dc_eq_neg, 'Mc': mc_eq_neg, 'Ma': ma_eq_neg, 'Mn': mn_eq_neg, 'A': a_eq_neg, 'Ca': ca_eq_neg,
-                  'Da': da_eq_neg}
-        equilibrium = eq_plus, eq_neg
-    else:
-        equilibrium = {'Dc': parameters['lam'] / parameters['d0'], 'Mc': 0, 'Ma': 0, 'Mn': 0, 'A': 'A*', 'Ca': 'Ca*',
-                       'Da': 'Da*'}
-    return equilibrium
+    lam, d0, d1, k1, k2, k3, k4, k5, k6, g = system_parameters
+
+    a0, ca0 = initial_a0_ca0
+
+    disc = compute_discriminant(system_parameters)
+
+    ma_eq_plus = k2**2 * (2 * k6 - k3 + np.sqrt(disc)) / (2 * k1 * d0 * (k3 - k6)**2)
+    mc_eq_plus = ((k3 - k6) / k2) * ma_eq_plus
+    mn_eq_plus = (k3 / d1) * ma_eq_plus
+    da_eq_plus = (k5 / (2 * g)) * ma_eq_plus**2
+    dc_eq_plus = (lam + (k1 / 2) * mc_eq_plus**2) / (d0 + g)
+    a_eq_plus = g * (a0 + ca0) / (g + k4 * ma_eq_plus)
+    ca_eq_plus = a0 + ca0 - a_eq_plus
+
+    ma_eq_neg = k2**2 * (2 * k6 - k3 - np.sqrt(disc)) / (2 * k1 * d0 * (k3 - k6)**2)
+    mc_eq_neg = ((k3 - k6) / k2) * ma_eq_neg
+    mn_eq_neg = (k3 / d1) * ma_eq_neg
+    da_eq_neg = (k5 / (2 * g)) * ma_eq_neg**2
+    dc_eq_neg = (lam + (k1 / 2) * mc_eq_neg ** 2) / (d0 + g)
+    a_eq_neg = g * (a0 + ca0) / (g + k4 * ma_eq_neg)
+    ca_eq_neg = a0 + ca0 - a_eq_neg
+
+    fixed_point_plus = {'Dc': dc_eq_plus, 'Mc': mc_eq_plus, 'Ma': ma_eq_plus, 'Mn': mn_eq_plus, 'A': a_eq_plus,
+                        'Ca': ca_eq_plus, 'Da': da_eq_plus}
+    fixed_point_neg = {'Dc': dc_eq_neg, 'Mc': mc_eq_neg, 'Ma': ma_eq_neg, 'Mn': mn_eq_neg, 'A': a_eq_neg,
+                       'Ca': ca_eq_neg, 'Da': da_eq_neg}
+
+    fixed_points = fixed_point_plus, fixed_point_neg
+
+    return fixed_points
 
 
-def get_existence_conditions(parameters: dict):
+def compute_fixed_point_without_stress(system_parameters: tuple) -> dict:
+    lam, d0, d1, k1, k2, k3, k4, k5, k6, g = system_parameters
+    return {'Dc': lam / d0, 'Mc': 0, 'Ma': 0, 'Mn': 0, 'A': 'A*', 'Ca': 'Ca*', 'Da': 'Da*'}
+
+
+def get_existence_conditions(system_parameters: tuple):
     """
     Function to write the theoretical conditions on the parameters that are needed for the equilibria to exist.
-    :param parameters: dict containing the parameters needed to verify the conditions.
+    :param system_parameters: dict containing the parameters needed to verify the conditions.
     """
-    disc = get_discriminant(parameters)
+    lam, d0, d1, k1, k2, k3, k4, k5, k6, g = system_parameters
+
+    disc = compute_discriminant(system_parameters)
+
     print("Ma+ exists if 2k6 + np.sqrt(Δ) > k3")
-    print(f"Condition fulfilled ? {2 * parameters['k6'] + np.sqrt(disc) > parameters['k3']}")
+    print(f"Condition fulfilled ? {2 * k6 + np.sqrt(disc) > k3}")
     print("Ma- exists if 2k6 > np.sqrt(Δ) + k3")
-    print(f"Condition fulfilled ? {2 * parameters['k6'] > np.sqrt(disc) + parameters['k3']}")
+    print(f"Condition fulfilled ? {2 * k6 > np.sqrt(disc) + k3}")
+
+
+def compute_discriminant(system_parameters: tuple) -> float:
+    """
+    Function to compute the value of the discriminant needed to get the value of the equilibrium with stress.
+    :param system_parameters: dict containing the parameters needed to compute the discriminant.
+    :return: the discriminant value as a float value.
+    """
+    lam, d0, d1, k1, k2, k3, k4, k5, k6, g = system_parameters
+
+    discriminant = (((k3 - 2 * k6) * (d0 + g))**2 +
+                    8 * k1 * d0 * g * lam *
+                    ((k3 - k6) / k2)**2)
+    return discriminant
 
 
 if __name__ == "__main__":
@@ -419,21 +530,21 @@ if __name__ == "__main__":
     # Compartmental simulations
     # is_irradiated = True
     is_irradiated = False
-    antioxidant_dose = 'no'
-    # antioxidant_dose = 'cst'
-    # antioxidant_dose = 'var'
-    statin_dose = 'no'
-    # statin_dose = 'cst'
-    # statin_dose = 'var'
+    antioxidant_dose_simulation = 'no'
+    # antioxidant_dose_simulation = 'cst'
+    # antioxidant_dose_simulation = 'var'
+    statin_dose_simulation = 'no'
+    # statin_dose_simulation = 'cst'
+    # statin_dose_simulation = 'var'
     # is_stress = True
-    is_stress = False
-    experimental_conditions = (is_irradiated, antioxidant_dose, statin_dose, is_stress)
+    is_stress_simulation = False
+    experimental_conditions = (is_irradiated, antioxidant_dose_simulation, statin_dose_simulation, is_stress_simulation)
     # np.random.random
     # initial_conditions = (150, 150, 150, 150, 150, 150, 150)
     # initial_conditions = 'formed'
     initial_conditions = 'not formed'
-    simulation_results, eq_stress, eq_no_stress = compartmental_simulation(24, 1 / 60, initial=initial_conditions,
-                                                                           experimental=experimental_conditions)
+    simulation_results, eq_stress, eq_no_stress = compartmental_simulation(24, 1 / 60, initial_conditions,
+                                                                           experimental_conditions)
     print(f"Equilibria when stress is considered:\n{eq_stress}")
     print(f"Equilibrium without stress:\n{eq_no_stress}")
     # print(f"Da: {test_simulation['Da']}")
@@ -442,6 +553,5 @@ if __name__ == "__main__":
     # print(f"A: {test_simulation['A']}")
 
     # Tests of the plotting process
-    plot_compartment(simulation_results, download=True)
-
-    # Equilibrium verification
+    # TO-DO Update plot-compartment to use the new format of simulation_results
+    plot_compartment(simulation_results, download=False)
