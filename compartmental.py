@@ -3,8 +3,8 @@ import matplotlib.figure
 from matplotlib import pyplot as plt
 
 
-def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial_crown_configuration: str = 'nf',
-                             experimental_conditions: tuple = (False, 'none', 'none', True)) -> tuple:
+def compartmental_simulation(duration: float, time_step: float, initial_crown_configuration,
+                             experimental_conditions: tuple) -> tuple:
     """
     Simulate the evolution of the Alzheimer compartmental model for the given duration.
     :param duration: float giving the time when the simulation must stop, given in hours.
@@ -109,7 +109,8 @@ def compartmental_simulation(duration: float, time_step: float = 1 / 60, initial
 
     if is_stress:
         initial_conditions_for_fixed_point = (initial_compartments_values[4], initial_compartments_values[5])
-        fixed_points_stress = compute_fixed_points_with_stress(all_parameters_system, initial_conditions_for_fixed_point)
+        fixed_points_stress = compute_fixed_points_with_stress(all_parameters_system,
+                                                               initial_conditions_for_fixed_point)
     else:
         fixed_points_stress = None
 
@@ -154,7 +155,8 @@ def is_initial_conditions_in_correct_format(initial_crown_configuration):
                              f"Input value: {initial_crown_configuration}")
     elif type(initial_crown_configuration) is tuple:
         if len(initial_crown_configuration) != 7:
-            raise ValueError(f"Parameter [initial_crown_configuration] must contain initial values for all seven compartments")
+            raise ValueError(f"Parameter [initial_crown_configuration] must contain initial values for all seven"
+                             f"compartments")
     else:
         raise TypeError(f"Parameter [initial_crown_configuration] must either be of type str or tuple.\n"
                         f"Input type: {type(initial_crown_configuration)}")
@@ -374,10 +376,10 @@ def plot_compartment(simulation_results: tuple, download: bool = False):
     :param simulation_results: dict containing the results of the simulation.
     :param download: boolean indicating whether to download the plot or not.
     """
-    fig, (ax_nucl, ax_pc) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (_, __) = plt.subplots(1, 2, figsize=(12, 5))
 
-    ax_nucl = plot_cyto_nucleus(simulation_results, ax_nucl)
-    ax_pc = plot_perinuclear_crown(simulation_results, ax_pc)
+    _ = plot_cyto_nucleus(simulation_results, _)
+    __ = plot_perinuclear_crown(simulation_results, __)
 
     plt.subplots_adjust(wspace=0.4)  # setting horizontal space between the two plots
 
@@ -488,9 +490,12 @@ def get_existence_conditions(system_parameters: tuple):
     disc = compute_discriminant(system_parameters)
 
     print(f"Discriminant's value:  {disc}")
-    print("Ma+ exists if 2k6 + np.sqrt(Δ) > k3")
+    print(f"Parameters' values: λ = {lam}\td0 = {d0}\td1 = {d1}\tk1 = {k1}\tk2 = {k2}")
+    print(f"k3 = {k3}\tk4 = {k4}\tk5 = {k5}\tk6 = {k6}\tg = {g}")  # not enough space on above line
+    print(f"sqrt(Δ) = {np.sqrt(disc)}")
+    print("Ma+ exists if 2k6 + sqrt(Δ) > k3")
     print(f"Condition fulfilled ? {2 * k6 + np.sqrt(disc) > k3}")
-    print("Ma- exists if 2k6 > np.sqrt(Δ) + k3")
+    print("Ma- exists if 2k6 > sqrt(Δ) + k3")
     print(f"Condition fulfilled ? {2 * k6 > np.sqrt(disc) + k3}")
 
 
