@@ -48,25 +48,24 @@ def get_neighborhood_below_equilibrium_without_stress(equilibrium: dict) -> tupl
     return dc_init, mc_init, ma_init, mn_init, a_init, ca_init, da_init
 
 
-def study_stability_with_stress(experimental_conditions):
+def study_stability_with_stress(experimental_conditions, duration_stability_test):
     _, __, equilibrium_with_stress, ___ = ct.compartmental_simulation(24, 1 / 60, 'not formed',
                                                                       experimental_conditions)
     print(f"Equilibrium value: {equilibrium_with_stress}")
     equilibrium_positive = equilibrium_with_stress[0]
     equilibrium_negative = equilibrium_with_stress[1]
 
-    neighborhood_above_equilibrium_with_stress = get_neighborhood_above_equilibrium_with_stress(equilibrium_positive)
-    print(neighborhood_above_equilibrium_with_stress)
+    neighborhood_above_equilibrium_with_stress = get_neighborhood_above_equilibrium_with_stress(equilibrium_negative)
 
-    time_array_above, stability_above_results, _, __ = ct.compartmental_simulation(2400, 1 / 60,
+    time_array_above, stability_above_results, _, __ = ct.compartmental_simulation(duration_stability_test, 1 / 60,
                                                                                    neighborhood_above_equilibrium_with_stress,
                                                                                    experimental_conditions)
 
     ct.plot_compartment((time_array_above, stability_above_results), download=False)
 
-    neighborhood_below_equilibrium_with_stress = get_neighborhood_below_equilibrium_with_stress(equilibrium_with_stress)
+    neighborhood_below_equilibrium_with_stress = get_neighborhood_below_equilibrium_with_stress(equilibrium_negative)
 
-    time_array_below, stability_below_results, _, __ = ct.compartmental_simulation(2400, 1 / 60,
+    time_array_below, stability_below_results, _, __ = ct.compartmental_simulation(duration_stability_test, 1 / 60,
                                                                                    neighborhood_below_equilibrium_with_stress,
                                                                                    experimental_conditions)
 
@@ -98,8 +97,8 @@ def get_neighborhood_below_equilibrium_with_stress(equilibrium: dict) -> tuple:
 
 
 if __name__ == "__main__":
-    some_experimental_conditions_without_stress = (False, 'no', 'no', False)
-    study_stability_without_stress(some_experimental_conditions_without_stress)
+    # some_experimental_conditions_without_stress = (False, 'no', 'no', False)
+    # study_stability_without_stress(some_experimental_conditions_without_stress)
 
-    some_experimental_conditions_with_stress = (False, 'no', 'no', True)
-    study_stability_with_stress(some_experimental_conditions_with_stress)
+    some_experimental_conditions_with_stress = (False, 'c', 'no', True)
+    study_stability_with_stress(some_experimental_conditions_with_stress, 1000)
