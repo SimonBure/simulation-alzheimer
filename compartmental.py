@@ -514,33 +514,12 @@ def compute_discriminant(system_parameters: tuple) -> float:
 
 
 if __name__ == "__main__":
-    # Plotting parameter functions
-    # k2 - k3
-    # concentration = np.linspace(0, 1000, num=1000)
-    # plt.plot(concentration, hill_fct_migration(concentration, coef2))
-    # plt.show()
+    k3_parameters = (80, 0.5, 5, 20, 0)
+    da_range = np.linspace(0, 1000, 1000)
+    drugs_doses = (1, 0)
+    k3_values = compute_migration_rate_to_nucleus(da_range, k3_parameters, drugs_doses)
+    plt.plot(da_range, k3_values)
 
-    # k5
-    # coef3 = (0.4, 150, 15)
-    # concentration = np.linspace(0, 200, num=200)
-    # plt.plot(concentration, hill_fct_dimer_formation(concentration, coef3), color="red")
-    # plt.show()
-
-    # g
-    # coef4 = (0.8, 9, 2)
-    # time = np.linspace(0, 10, num=100)
-    # g_values = irradiation_stress(time, coef4)
-    # plt.plot(time, g_values)
-    # plt.show()
-
-    # antioxidant
-    # coef4 = (1, 9, 3)
-    # time = np.linspace(0, 20, num=100)
-    # aox_values = antioxidant_effect(time, coef4)
-    # plt.plot(time, aox_values)
-    # plt.show()
-
-    # Compartmental simulations
     # is_irradiated = True
     is_irradiated = False
     antioxidant_dose_simulation = 'no'
