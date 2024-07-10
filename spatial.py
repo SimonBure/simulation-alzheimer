@@ -102,16 +102,20 @@ def create_sparse_matrix_from_diags(nb_space_points, diagonals_content):
     return system_matrix
 
 
-def Reaction_P1_Robin(p1, p2, p1a, p2a, k, ka, tauC, tauD):
-    res = np.zeros_like(p1);
+def create_reaction_array(system_values, parameters_values):
+    monomers, dimers, apoe_proteins, complexes = system_values
+    k, ka, fragmentation_for_complexes, fragmentation_for_dimers = parameters_values
+    reaction_array = np.zeros_like(monomers)
 
-    res[1:-1] = -k * p1[1:-1] * p1[1:-1] - ka * p1[1:-1] * p1a[1:-1] + tauD * 2 * p2[1:-1] + tauC * p2a[1:-1];
+    reaction_array[1:-1] = (-k * monomers[1:-1] * monomers[1:-1] - ka * monomers[1:-1] * apoe_proteins[1:-1]
+                            + fragmentation_for_complexes * complexes[1:-1]
+                            + fragmentation_for_dimers * 2 * dimers[1:-1])
 
-    res[0] = -p1[0];
-    res[-1] = -p1[-1];
+    reaction_array[0] = -monomers[0]
+    reaction_array[-1] = -monomers[-1]
 
-    return (res)
+    return reaction_array
 
 
 if __name__ == "__main__":
-    test_commit = 5 * 10
+    pass

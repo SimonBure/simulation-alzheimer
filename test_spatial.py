@@ -10,11 +10,11 @@ def test_create_sparse_matrix_from_diags():
     some_lower_diagonal = [10, 11, 12, 13]
     some_diagonals_content = (some_diagonal, some_lower_diagonal, some_upper_diagonal)
 
-    expected_output = [[1, 6, 0, 0, 0],
-                       [10, 2, 7, 0, 0],
-                       [0, 11, 3, 8, 0],
-                       [0, 0, 12, 4, 9],
-                       [0, 0, 0, 13, 5]]
+    expected_output = np.array([[1, 6, 0, 0, 0],
+                               [10, 2, 7, 0, 0],
+                               [0, 11, 3, 8, 0],
+                               [0, 0, 12, 4, 9],
+                               [0, 0, 0, 13, 5]])
 
     actual_output = sp.create_sparse_matrix_from_diags(a_nb_space_points, some_diagonals_content).toarray()
 
@@ -66,10 +66,28 @@ def test_create_diags_for_system_matrix_robin_neumann():
     actual_diagonal, actual_lower, actual_upper = sp.create_diags_for_system_matrix_robin_neumann(a_nb_space_points,
                                                                                                   some_discrete_steps,
                                                                                                   some_coefficients)
-    print(actual_diagonal, actual_lower, actual_upper)
     assert np.allclose(expected_diagonal, actual_diagonal)
     assert np.allclose(expected_lower_diagonal, actual_lower)
     assert np.allclose(expected_upper_diagonal, actual_upper)
+
+
+def test_create_reaction_array():
+    some_monomer_values = np.array([1.1, 1.2, 1.3, 1.4, 1.5])
+    some_dimer_values = np.array([2.1, 2.2, 2.3, 2.4, 2.5])
+    some_apoe_values = np.array([3.1, 3.2, 3.3, 3.4, 3.5])
+    some_complex_values = np.array([4.1, 4.2, 4.3, 4.4, 4.5])
+    some_system_values = (some_monomer_values, some_dimer_values, some_apoe_values, some_complex_values)
+    a_k_value = 5
+    a_ka_value = 6
+    a_fragmentation_for_complexes = 7
+    a_fragmentation_for_dimers = 8
+    some_parameters_values = (a_k_value, a_ka_value, a_fragmentation_for_complexes, a_fragmentation_for_dimers)
+
+    expected_reaction_array = np.array([-1.1, 34.36, 32.71, 30.84, -1.5])
+
+    actual_reaction_array = sp.create_reaction_array(some_system_values, some_parameters_values)
+
+    assert np.allclose(expected_reaction_array, actual_reaction_array)
 
 
 if __name__ == "__main__":
@@ -80,3 +98,5 @@ if __name__ == "__main__":
     test_create_diags_for_system_matrix_neumann()
 
     test_create_diags_for_system_matrix_robin_neumann()
+
+    test_create_reaction_array()
