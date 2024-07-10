@@ -57,8 +57,6 @@ def test_create_diags_for_system_matrix_robin_neumann():
     a_diffusion_coefficient = 3
 
 
-
-
 if __name__ == "__main__":
     test_create_sparse_matrix_from_diags()
 
