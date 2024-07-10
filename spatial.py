@@ -86,15 +86,10 @@ def create_diags_for_system_matrix_robin_neumann(nb_space_points, discrete_steps
     upper[:] = - discrete_laplacian * diffusion_coefficient - transport_coefficient[1:] * discrete_derivative[1:]
 
     # Robin-Neumann boundary conditions
-    ##Attention on sait pas si
     diagonal[0] = 1 + spatial_step * alpha / diffusion_coefficient
     upper[0] = -(1 + spatial_step * transport_variable / diffusion_coefficient)
-    # ou
-    # diagonal[0] = -1
-    # upper[0] = 1+dx*(v-alpha)/D
     diagonal[nb_space_points - 1] = -1
     lower[-1] = 1 - spatial_step * transport_coefficient[-1] / diffusion_coefficient
-    # lower[-1] = 1
 
     return diagonal, lower, upper
 

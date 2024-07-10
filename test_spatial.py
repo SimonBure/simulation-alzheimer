@@ -38,7 +38,7 @@ def test_create_diags_for_system_matrix_neumann():
     some_discrete_steps = (0.1, 0.2)
     a_diffusion_coefficient = 3
 
-    expected_diagonal = np.array([1.0, 16.0, 16.0, 16.0, 1.0])
+    expected_diagonal = [1.0, 16.0, 16.0, 16.0, 1.0]
     expected_lower_diagonal = [-7.5, -7.5, -7.5, -1,]
     expected_upper_diagonal = [-1, -7.5, -7.5, -7.5,]
 
@@ -52,7 +52,11 @@ def test_create_diags_for_system_matrix_neumann():
 
 
 def test_create_diags_for_system_matrix_robin_neumann():
-    pass
+    a_nb_space_points = 5
+    some_discrete_steps = (0.1, 0.2)
+    a_diffusion_coefficient = 3
+
+
 
 
 if __name__ == "__main__":
