@@ -36,19 +36,19 @@ def create_diags_for_system_matrix_neumann(nb_space_points, discrete_steps, diff
     # Neumann boundary conditions
     diagonal[0] = 1
     upper[0] = -1
-    diagonal[nb_space_points - 1] = 1
+    diagonal[-1] = 1
     lower[-1] = -1
 
     return diagonal, lower, upper
 
 
 def create_fast_edp_solver_robin_neumann(nb_space_points, space_step, time_step, diffusion_coefficient,
-                                         transport_variable, alpha):
+                                         transport_variable, nucleus_permeability):
     discrete_steps = time_step, space_step
 
-    transport_coefficient = compute_transport_coefficient(nb_space_points, transport_variable)
+    transport_values_over_space = compute_transport_values_over_space(nb_space_points, transport_variable)
 
-    system_coefficients = diffusion_coefficient, transport_coefficient, transport_variable, alpha
+    system_coefficients = diffusion_coefficient, transport_values_over_space, transport_variable, nucleus_permeability
 
     content_system_matrix = create_diags_for_system_matrix_robin_neumann(nb_space_points, discrete_steps,
                                                                          system_coefficients)
@@ -60,36 +60,36 @@ def create_fast_edp_solver_robin_neumann(nb_space_points, space_step, time_step,
     return fast_edp_solver
 
 
-def compute_transport_coefficient(nb_space_points, transport_variable):
+def compute_transport_values_over_space(nb_space_points, transport_variable):
     space_array = np.linspace(0, 1, nb_space_points)
     transport_constant = 10
-    transport_coefficient = transport_variable * np.exp(-transport_constant * space_array)
-    transport_coefficient[transport_coefficient < 1e-2] = 0
+    transport_values_over_space = transport_variable * np.exp(-transport_constant * space_array)
+    transport_values_over_space[transport_values_over_space < 1e-2] = 0
 
-    return transport_coefficient
+    return transport_values_over_space
 
 
 def create_diags_for_system_matrix_robin_neumann(nb_space_points, discrete_steps, coefficients):
     time_step, spatial_step = discrete_steps
 
-    discrete_laplacian = time_step / space_step ** 2
-    discrete_derivative = time_step / space_step
+    diffusion_coefficient, transport_values_over_space, transport_variable, nucleus_permeability = coefficients
 
-    diffusion_coefficient, transport_coefficient, transport_variable, alpha = coefficients
+    discrete_laplacian = time_step / spatial_step ** 2
+    discrete_derivative = time_step / spatial_step
 
     diagonal = np.zeros(nb_space_points)
     lower = np.zeros(nb_space_points - 1)
     upper = np.zeros(nb_space_points - 1)
 
-    diagonal[:] = 1 + 2 * diffusion_coefficient * discrete_laplacian + transport_coefficient * discrete_derivative
+    diagonal[:] = 1 + 2 * diffusion_coefficient * discrete_laplacian + transport_values_over_space * discrete_derivative
     lower[:] = - discrete_laplacian * diffusion_coefficient
-    upper[:] = - discrete_laplacian * diffusion_coefficient - transport_coefficient[1:] * discrete_derivative[1:]
+    upper[:] = - discrete_laplacian * diffusion_coefficient - transport_values_over_space[1:] * discrete_derivative
 
     # Robin-Neumann boundary conditions
-    diagonal[0] = 1 + spatial_step * alpha / diffusion_coefficient
+    diagonal[0] = 1 + spatial_step * nucleus_permeability / diffusion_coefficient
+    diagonal[-1] = -1
+    lower[-1] = 1 - spatial_step * transport_values_over_space[-1] / diffusion_coefficient
     upper[0] = -(1 + spatial_step * transport_variable / diffusion_coefficient)
-    diagonal[nb_space_points - 1] = -1
-    lower[-1] = 1 - spatial_step * transport_coefficient[-1] / diffusion_coefficient
 
     return diagonal, lower, upper
 
