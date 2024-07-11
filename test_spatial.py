@@ -1,5 +1,5 @@
-import spatial as sp
 import numpy as np
+import spatial as sp
 
 
 def test_create_sparse_matrix_from_diags():
