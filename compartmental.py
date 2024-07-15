@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.figure
 from matplotlib import pyplot as plt
 
 
@@ -164,7 +163,7 @@ def is_initial_conditions_in_correct_format(initial_crown_configuration):
 
 def setup_display_arrays(initial_compartments_values, size_arrays) -> []:
     compartment_display_arrays = [0] * 7
-    for index, compartment in enumerate(initial_compartments_values):
+    for (index, compartment) in enumerate(initial_compartments_values):
         compartment_display_arrays[index] = np.full(size_arrays, compartment)
 
     return compartment_display_arrays
@@ -300,8 +299,7 @@ def compute_migration_rate_to_pc(monomers_concentration: float, migration_coeffi
     return ((b * a ** n) / (a ** n + monomers_concentration ** n)) / (1 + e * antioxidant_dose)
 
 
-def compute_migration_rate_to_nucleus(monomers_concentration: float, migration_coefficients: tuple,
-                                      drugs_doses: tuple) -> float:
+def compute_migration_rate_to_nucleus(monomers_concentration, migration_coefficients, drugs_doses):
     a = migration_coefficients[0]
     b = migration_coefficients[1]
     n = migration_coefficients[2]
@@ -390,7 +388,7 @@ def plot_compartment(simulation_results: tuple, download: bool = False):
 
 
 # TO-DO Update this function to be used with the new output of
-def plot_cyto_nucleus(simulation_results: tuple, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
+def plot_cyto_nucleus(simulation_results: tuple, ax):
     """
     Function to plot the trajectories of the simulation in the cytoplasm and the nucleus.
     :param simulation_results: dict containing the results of the simulation.
@@ -412,7 +410,7 @@ def plot_cyto_nucleus(simulation_results: tuple, ax: matplotlib.figure.Axes) -> 
     return ax
 
 
-def plot_perinuclear_crown(simulation_results: tuple, ax: matplotlib.figure.Axes) -> matplotlib.figure.Axes:
+def plot_perinuclear_crown(simulation_results, ax):
     """
     Function to plot the trajectories of the simulation in the perinuclear crown.
     :param simulation_results: dict containing the results of the simulation.
@@ -516,8 +514,8 @@ def compute_discriminant(system_parameters: tuple) -> float:
 if __name__ == "__main__":
     k3_parameters = (80, 0.5, 5, 20, 0)
     da_range = np.linspace(0, 1000, 1000)
-    drugs_doses = (1, 0)
-    k3_values = compute_migration_rate_to_nucleus(da_range, k3_parameters, drugs_doses)
+    some_drugs_doses = (1, 0)
+    k3_values = compute_migration_rate_to_nucleus(da_range, k3_parameters, some_drugs_doses)
     plt.plot(da_range, k3_values)
 
     # is_irradiated = True
