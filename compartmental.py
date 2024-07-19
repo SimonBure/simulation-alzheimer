@@ -46,7 +46,7 @@ def compartmental_simulation(duration: float, time_step: float, initial_crown_co
     cs = 0.002  # rate of protein dissociation during constant stress
     stress_coefficients = (cs, e0)
 
-    cox = 1  # dose of antioxidant
+    cox = 1.5  # dose of antioxidant
     antioxidant_coefficients = (cox, 9, 3)  # parameters for the gaussian representation of the antioxidant effect
 
     sta = 5  # dose of statin
@@ -397,13 +397,13 @@ def plot_cyto_nucleus(simulation_results: tuple, ax):
     """
     time_array, compartments_display_arrays = simulation_results
     # Data plotting
-    ax.plot(time_array, compartments_display_arrays[0], label='Dc', color='blue')
-    ax.plot(time_array, compartments_display_arrays[1], label='Mc', color='green')
-    ax.plot(time_array, compartments_display_arrays[3], label='Mn', color='red')
+    ax.plot(time_array, compartments_display_arrays[0], label='$D_C$', color='blue')
+    ax.plot(time_array, compartments_display_arrays[1], label='$M_C$', color='green')
+    ax.plot(time_array, compartments_display_arrays[3], label='$M_N$', color='red')
 
     # Titles & labels
-    ax.set_title("Populations evolution in the cytoplasm & nucleus}")
-    ax.set_xlabel('Time (h)', fontsize=12)
+    ax.set_title("Populations evolution in the cytoplasm & nucleus")
+    ax.set_xlabel('Time ($h$)', fontsize=12)
     ax.set_ylabel('Populations', fontsize=12)
     ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
 
@@ -419,14 +419,14 @@ def plot_perinuclear_crown(simulation_results, ax):
     """
     time_array, compartments_display_arrays = simulation_results
     # Data plotting
-    ax.plot(time_array, compartments_display_arrays[4], label='A', color='magenta')
-    ax.plot(time_array, compartments_display_arrays[5], label='Ca', color='darkorange')
-    ax.plot(time_array, compartments_display_arrays[6], label='Da', color='crimson')
-    ax.plot(time_array, compartments_display_arrays[2], label='Ma', color='dodgerblue')
+    ax.plot(time_array, compartments_display_arrays[4], label='$A$', color='magenta')
+    ax.plot(time_array, compartments_display_arrays[5], label='$C_A$', color='darkorange')
+    ax.plot(time_array, compartments_display_arrays[6], label='$D_A$', color='crimson')
+    ax.plot(time_array, compartments_display_arrays[2], label='$M_A$', color='dodgerblue')
 
     # Titles & labels
     ax.set_title("Populations evolution in the perinuclear crown")
-    ax.set_xlabel('Time (h)', fontsize=12)
+    ax.set_xlabel('Time ($h$)', fontsize=12)
     ax.set_ylabel('Populations', fontsize=12)
     ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
 
@@ -512,14 +512,14 @@ def compute_discriminant(system_parameters: tuple) -> float:
 
 
 if __name__ == "__main__":
-    k3_parameters = (80, 0.5, 5, 20, 0)
-    da_range = np.linspace(0, 1000, 1000)
-    some_drugs_doses = (1, 0)
-    k3_values = compute_migration_rate_to_nucleus(da_range, k3_parameters, some_drugs_doses)
-    plt.plot(da_range, k3_values)
+    # k3_parameters = (80, 0.5, 5, 20, 0)
+    # da_range = np.linspace(0, 1000, 1000)
+    # some_drugs_doses = (1, 0)
+    # k3_values = compute_migration_rate_to_nucleus(da_range, k3_parameters, some_drugs_doses)
+    # plt.plot(da_range, k3_values)
 
-    # is_irradiated = True
-    is_irradiated = False
+    is_irradiated = True
+    # is_irradiated = False
     antioxidant_dose_simulation = 'no'
     # antioxidant_dose_simulation = 'cst'
     # antioxidant_dose_simulation = 'var'
@@ -531,10 +531,13 @@ if __name__ == "__main__":
     some_experimental_conditions = (is_irradiated, antioxidant_dose_simulation, statin_dose_simulation,
                                     is_stress_simulation)
     # np.random.random
-    # initial_conditions = (150, 150, 150, 150, 150, 150, 150)
-    # initial_conditions = 'formed'
-    initial_conditions = 'not formed'
-    a_time_array, some_compartments_results, eq_stress, eq_no_stress = compartmental_simulation(24, 1 / 60,
+    # initial_conditions = (150, 0, 0, 0, 0, 0, 0)
+    initial_conditions = 'formed'
+    # initial_conditions = 'not formed'
+
+    duration = 24  # hours
+
+    a_time_array, some_compartments_results, eq_stress, eq_no_stress = compartmental_simulation(duration, 1 / 60,
                                                                                                 initial_conditions,
                                                                                                 some_experimental_conditions)
     print(f"Example of the simulation results:\n{some_compartments_results}")
@@ -546,5 +549,4 @@ if __name__ == "__main__":
     # print(f"A: {test_simulation['A']}")
 
     # Tests of the plotting process
-    # TO-DO Update plot-compartment to use the new format of simulation_results
     plot_compartment((a_time_array, some_compartments_results), download=False)
