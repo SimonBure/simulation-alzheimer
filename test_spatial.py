@@ -71,7 +71,7 @@ def test_create_diags_for_system_matrix_robin_neumann():
     assert np.allclose(expected_upper_diagonal, actual_upper)
 
 
-def test_create_reaction_array():
+def test_create_monomers_reaction_array():
     some_monomer_values = np.array([1.1, 1.2, 1.3, 1.4, 1.5])
     some_dimer_values = np.array([2.1, 2.2, 2.3, 2.4, 2.5])
     some_apoe_values = np.array([3.1, 3.2, 3.3, 3.4, 3.5])
@@ -85,7 +85,7 @@ def test_create_reaction_array():
 
     expected_reaction_array = np.array([-1.1, 34.36, 32.71, 30.84, -1.5])
 
-    actual_reaction_array = sp.create_reaction_array(some_system_values, some_parameters_values)
+    actual_reaction_array = sp.create_monomers_reaction_array(some_system_values, some_parameters_values)
 
     assert np.allclose(expected_reaction_array, actual_reaction_array)
 
@@ -95,8 +95,6 @@ if __name__ == "__main__":
 
     test_compute_transport_values_over_space()
 
-    test_create_diags_for_system_matrix_neumann()
-
     test_create_diags_for_system_matrix_robin_neumann()
 
-    test_create_reaction_array()
+    test_create_monomers_reaction_array()
