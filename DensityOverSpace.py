@@ -1,17 +1,24 @@
 import numpy as np
 from numpy import ndarray
 import abc
+from Space1D import TimeSpace
 
 
 class DensityOverSpace(abc.ABC):
     # The simulation needs 2 arrays
     actual_values: ndarray
     next_values: ndarray
+    every_time_values: ndarray
 
     def __init__(self, initial_state: ndarray):
         self.actual_values = np.zeros(initial_state.shape)
         self.actual_values[:] = initial_state  # using slice to copy the values and not simply pointing to it
+
         self.next_values = np.zeros(initial_state.shape)
+
+    def setup_every_time_values(self, time_space: TimeSpace):
+        self.every_time_values = np.zeros((time_space.nb_points, self.actual_values.shape))
+        self.every_time_values[0, :] = self.actual_values
 
     def update_values_for_next_step(self):
         self.actual_values[:] = self.next_values  # using slice to copy the values and not simply pointing to it
