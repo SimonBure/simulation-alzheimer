@@ -1,13 +1,14 @@
 import abc
 import numpy as np
+from numpy import ndarray
 from Space1D import TimeSpace, SpatialSpace
-import Experiment as Exp
+from Experiment import Antioxidant, Irradiation, Statin
 
 
 # ABC for abstract class
 class Parameter(abc.ABC):
     natural_value: float
-    over_time_values: np.ndarray
+    over_time_values: ndarray
 
     def __init__(self, natural_value: float):
         self.natural_value = natural_value
@@ -23,7 +24,7 @@ class DiffusionParameter(Parameter):
         Parameter.__init__(self, natural_value)
         self.antioxidant_value = antioxidant_value
 
-    def impact_antioxidant(self, antioxidant: Exp.Antioxidant, time_space: TimeSpace):
+    def impact_antioxidant(self, antioxidant: Antioxidant, time_space: TimeSpace):
         experiment_start_index = antioxidant.get_index_starting_time(time_space)
         experiment_end_index = antioxidant.get_index_ending_time(time_space)
         self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.antioxidant_value
@@ -31,7 +32,7 @@ class DiffusionParameter(Parameter):
 
 class TransportParameter(Parameter):
     irradiation_value: float
-    over_space_values: np.ndarray
+    over_space_values: ndarray
 
     def __init__(self, natural_value: float, irradiation_value: float):
         Parameter.__init__(self, natural_value)
@@ -40,7 +41,7 @@ class TransportParameter(Parameter):
     def setup_values_over_space(self, spatial_space: SpatialSpace, space_constant_value: float):
         self.over_space_values = np.exp(- space_constant_value * spatial_space.space)
 
-    def impact_antioxidant(self, antioxidant: Exp.Antioxidant, time_space: TimeSpace):
+    def impact_antioxidant(self, antioxidant: Antioxidant, time_space: TimeSpace):
         experiment_start_index = antioxidant.get_index_starting_time(time_space)
         experiment_end_index = antioxidant.get_index_ending_time(time_space)
         self.over_time_values[experiment_start_index:experiment_end_index + 1] = 0
@@ -59,7 +60,7 @@ class FragmentationParameter(DiffusionParameter, TransportParameter):
         TransportParameter.__init__(self, natural_value, irradiation_value)
         self.antioxidant_and_irradiation_value = antioxidant_value + irradiation_value
 
-    def impact_antioxidant_and_irradiation_combined(self, antioxidant: Exp.Antioxidant, irradiation: Exp.Irradiation,
+    def impact_antioxidant_and_irradiation_combined(self, antioxidant: Antioxidant, irradiation: Irradiation,
                                                     time_space: TimeSpace):
         antioxidant_start, antioxidant_end = antioxidant.get_indexes_start_and_end(time_space)
         irradiation_start, irradiation_end = irradiation.get_indexes_start_and_end(time_space)
@@ -79,7 +80,7 @@ class PermeabilityParameter:
     abscissa: float
     ordinate: float
     statin_impact: float
-    statin_impact_over_time: np.ndarray
+    statin_impact_over_time: ndarray
 
     def __init__(self, abscissa: float, ordinate: float, statin_impact: float):
         self.abscissa = abscissa
@@ -89,7 +90,7 @@ class PermeabilityParameter:
     def setup_values_over_time(self, time_space: TimeSpace):
         self.statin_impact_over_time = np.zeros(time_space.nb_points)
 
-    def impact_statin(self, statin: Exp.Statin, time_space: TimeSpace):
+    def impact_statin(self, statin: Statin, time_space: TimeSpace):
         statin_start_index, statin_end_index = statin.get_indexes_start_and_end(time_space)
         self.statin_impact_over_time[statin_start_index:statin_end_index + 1] = self.statin_impact
 

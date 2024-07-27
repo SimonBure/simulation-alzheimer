@@ -1,11 +1,13 @@
+import abc
 import numpy as np
+from numpy import ndarray
 
 
-class Space1D:
+class Space1D(abc.ABC):
     end: float
     nb_points: int
     step: float
-    space: np.ndarray
+    space: ndarray
 
     def __init__(self, end: float, nb_points: int):
         self.end = end
