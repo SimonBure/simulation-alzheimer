@@ -30,21 +30,16 @@ class DiffusionParameter(Parameter):
         self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.antioxidant_value
 
 
-class TransportParameter(Parameter):
+class TransportParameter(DiffusionParameter):
     irradiation_value: float
     over_space_values: ndarray
 
     def __init__(self, natural_value: float, irradiation_value: float):
-        Parameter.__init__(self, natural_value)
+        super().__init__(natural_value, antioxidant_value=0)  # no transport when antioxidants are on
         self.irradiation_value = irradiation_value
 
     def setup_values_over_space(self, spatial_space: SpatialSpace, space_constant_value: float):
         self.over_space_values = np.exp(- space_constant_value * spatial_space.space)
-
-    def impact_antioxidant(self, antioxidant: Antioxidant, time_space: TimeSpace):
-        experiment_start_index = antioxidant.get_index_starting_time(time_space)
-        experiment_end_index = antioxidant.get_index_ending_time(time_space)
-        self.over_time_values[experiment_start_index:experiment_end_index + 1] = 0
 
     def impact_irradiation(self, irradiation: Irradiation, time_space: TimeSpace):
         experiment_start_index = irradiation.get_index_starting_time(time_space)
@@ -56,8 +51,9 @@ class FragmentationParameter(DiffusionParameter, TransportParameter):
     antioxidant_and_irradiation_value: float
 
     def __init__(self, natural_value: float, antioxidant_value: float, irradiation_value: float):
-        DiffusionParameter.__init__(self, natural_value, antioxidant_value)
         TransportParameter.__init__(self, natural_value, irradiation_value)
+        # DiffusionParameter constructor in second to set the antioxidant value not to zero
+        DiffusionParameter.__init__(self, natural_value, antioxidant_value)
         self.antioxidant_and_irradiation_value = antioxidant_value + irradiation_value
 
     def impact_antioxidant_and_irradiation_combined(self, antioxidant: Antioxidant, irradiation: Irradiation,
