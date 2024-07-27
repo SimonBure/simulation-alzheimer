@@ -46,7 +46,7 @@ class TransportParameter(Parameter):
         experiment_end_index = antioxidant.get_index_ending_time(time_space)
         self.over_time_values[experiment_start_index:experiment_end_index + 1] = 0
 
-    def impact_irradiation(self, irradiation: Exp.Irradiation, time_space: TimeSpace):
+    def impact_irradiation(self, irradiation: Irradiation, time_space: TimeSpace):
         experiment_start_index = irradiation.get_index_starting_time(time_space)
         experiment_end_index = irradiation.get_index_ending_time(time_space)
         self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.irradiation_value
@@ -77,14 +77,14 @@ class FragmentationParameter(DiffusionParameter, TransportParameter):
 
 
 class PermeabilityParameter:
-    abscissa: float
     ordinate: float
+    abscissa: float
     statin_impact: float
     statin_impact_over_time: ndarray
 
-    def __init__(self, abscissa: float, ordinate: float, statin_impact: float):
-        self.abscissa = abscissa
+    def __init__(self, ordinate: float, abscissa: float, statin_impact: float):
         self.ordinate = ordinate
+        self.abscissa = abscissa
         self.statin_impact = statin_impact
 
     def setup_values_over_time(self, time_space: TimeSpace):

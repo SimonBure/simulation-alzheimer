@@ -64,7 +64,7 @@ def test_impact_statin_permeability_parameter() -> bool:
 
 
 def test_get_permeability_depending_on_bulk() -> bool:
-    a_permeability_parameter = PermeabilityParameter(0.3, 2.6, 5.5)
+    a_permeability_parameter = PermeabilityParameter(2.6, 0.3, 5.5)
     a_time_space = TimeSpace(1, 5)
     a_permeability_parameter.setup_values_over_time(a_time_space)
     a_statin_experiment = Exp.Statin(0.25, 0.75)
