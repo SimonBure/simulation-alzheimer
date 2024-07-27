@@ -1,6 +1,6 @@
 import abc
 import numpy as np
-from Space1D import TimeSpace
+from Space1D import TimeSpace, SpatialSpace
 import Experiment as Exp
 
 
@@ -31,10 +31,14 @@ class DiffusionParameter(Parameter):
 
 class TransportParameter(Parameter):
     irradiation_value: float
+    over_space_values: np.ndarray
 
     def __init__(self, natural_value: float, irradiation_value: float):
         Parameter.__init__(self, natural_value)
         self.irradiation_value = irradiation_value
+
+    def setup_values_over_space(self, spatial_space: SpatialSpace, space_constant_value: float):
+        self.over_space_values = np.exp(- space_constant_value * spatial_space.space)
 
     def impact_antioxidant(self, antioxidant: Exp.Antioxidant, time_space: TimeSpace):
         experiment_start_index = antioxidant.get_index_starting_time(time_space)
