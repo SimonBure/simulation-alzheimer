@@ -2,6 +2,7 @@ from numpy import ndarray
 from DensityOverSpace import AtmMonomers, AtmDimers, ApoeProteins, ApoeAtmComplexes
 from Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
 from Space1D import TimeSpace, SpatialSpace
+from Experiment import Antioxidant, Irradiation, Statin
 
 
 class ReactionDiffusionAtmApoeSystem:
@@ -16,6 +17,7 @@ class ReactionDiffusionAtmApoeSystem:
     transport_parameter: TransportParameter
     fragmentation_parameter: FragmentationParameter
     permeability_parameter: PermeabilityParameter
+    variable_parameters: [DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter]
 
     ratio_fragmentation_dimers_complexes: float
 
@@ -31,11 +33,33 @@ class ReactionDiffusionAtmApoeSystem:
                          ratio_fragmentation_dimers_complexes: float):
         self.k = k
         self.ka = ka
+
         self.diffusion_parameter = diffusion
         self.transport_parameter = transport
         self.fragmentation_parameter = fragmentation
         self.permeability_parameter = permeability
+
+        self.variable_parameters = [self.diffusion_parameter, self.transport_parameter, self.fragmentation_parameter,
+                                    self.permeability_parameter]
+        self.setup_parameters_values_over_time()
+
         self.ratio_fragmentation_dimers_complexes = ratio_fragmentation_dimers_complexes
+
+    def setup_parameters_values_over_time(self):
+        for parameter in self.variable_parameters:
+            parameter.setup_values_over_time(self.time_space)
+
+    def setup_experiments_impact_on_parameters(self, antioxidant: Antioxidant, irradiation: Irradiation,
+                                               statin: Statin):
+        for parameter in self.variable_parameters[:-1]:
+            parameter.impact_antioxidant(antioxidant, self.time_space)
+
+        for parameter in self.variable_parameters[:-2]:
+            parameter.impact_irradiation(irradiation, self.time_space)
+
+        self.fragmentation_parameter.impact_antioxidant_and_irradiation_combined(antioxidant, irradiation,
+                                                                                 self.time_space)
+        self.permeability_parameter.impact_statin(statin, self.time_space)
 
     def setup_initial_population_conditions(self, monomers_initial: ndarray, dimers_initial: ndarray,
                                             apoe_initial: ndarray, complexes_initial: ndarray):
