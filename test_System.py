@@ -106,7 +106,28 @@ def test_compute_complexes_next_density() -> bool:
     return np.array_equal(a_system.complexes.next_values, expected_complexes_values)
 
 
+def test_compute_bulk_over_nucleus() -> bool:
+    a_system = ReactionDiffusionAtmApoeSystem()
+    a_spatial_space = SpatialSpace(5, 5)
+    a_time_space = TimeSpace(1, 5)
+    a_system.setup_spaces(a_spatial_space, a_time_space)
+
+    a_monomers_initial_state = np.array([1.0, 1.2, 1.5, 1.2, 1.0])
+    a_dimers_initial_state = np.array([2.0, 2.0, 2.0, 2.0, 2.0])
+    a_apoe_initial_state = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
+    a_complexes_initial_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+
+    a_system.setup_initial_population_conditions(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
+                                                 a_complexes_initial_state)
+
+    actual_bulk = a_system.compute_bulk_over_nucleus()
+    expected_bulk = 22.62
+
+    return actual_bulk == expected_bulk
+
+
 if __name__ == "__main__":
     assert test_compute_dimers_next_density()
     assert test_compute_apoe_next_density()
     assert test_compute_complexes_next_density()
+    assert test_compute_bulk_over_nucleus()

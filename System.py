@@ -62,3 +62,8 @@ class ReactionDiffusionAtmApoeSystem:
         self.complexes.next_values = (self.complexes.actual_values + self.time_space.step *
                                       (self.ka * self.monomers.actual_values * self.apoe_proteins.actual_values -
                                        fragmentation_rate_complexes * self.complexes.actual_values))
+
+    def compute_bulk_over_nucleus(self) -> float:
+        protein_bulk = float(3.66 * self.monomers.actual_values[0] + 6.98 * self.dimers.actual_values[0] +
+                             self.apoe_proteins.actual_values[0] + 4.66 * self.complexes.actual_values[0])
+        return protein_bulk
