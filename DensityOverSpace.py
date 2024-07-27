@@ -20,6 +20,9 @@ class DensityOverSpace(abc.ABC):
         self.every_time_values = np.zeros((time_space.nb_points, self.actual_values.shape))
         self.every_time_values[0, :] = self.actual_values
 
+    def set_next_values(self, next_values: ndarray):
+        self.next_values[:] = next_values
+
     def update_values_for_next_step(self):
         self.actual_values[:] = self.next_values  # using slice to copy the values and not simply pointing to it
 
