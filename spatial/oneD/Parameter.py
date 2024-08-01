@@ -1,8 +1,8 @@
 import abc
 import numpy as np
 from numpy import ndarray
-from Space1D import TimeSpace, SpatialSpace
-from Experiment import Antioxidant, Irradiation, Statin
+from spatial.oneD.OneDimSpace import TimeSpace, SpatialSpace
+from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
 
 
 # ABC for abstract class
@@ -15,6 +15,9 @@ class Parameter(abc.ABC):
 
     def setup_values_over_time(self, time_space: TimeSpace):
         self.over_time_values = self.natural_value * np.ones(time_space.nb_points)
+
+    def get_value_at_specific_time(self, time_index: int) -> float:
+        return float(self.over_time_values[time_index])
 
 
 class DiffusionParameter(Parameter):
@@ -47,7 +50,7 @@ class TransportParameter(DiffusionParameter):
         self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.irradiation_value
 
 
-class FragmentationParameter(DiffusionParameter, TransportParameter):
+class FragmentationParameter(TransportParameter, DiffusionParameter):
     antioxidant_and_irradiation_value: float
 
     def __init__(self, natural_value: float, antioxidant_value: float, irradiation_value: float):

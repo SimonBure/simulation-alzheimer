@@ -1,4 +1,4 @@
-import compartmental as cp
+import compartmental.compartmental as cp
 import numpy as np
 
 

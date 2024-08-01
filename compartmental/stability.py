@@ -1,4 +1,4 @@
-import compartmental as ct
+import compartmental.compartmental as ct
 import random as rdm
 
 

@@ -518,11 +518,11 @@ if __name__ == "__main__":
     # k3_values = compute_migration_rate_to_nucleus(da_range, k3_parameters, some_drugs_doses)
     # plt.plot(da_range, k3_values)
 
-    # is_irradiated = True
-    is_irradiated = False
-    antioxidant_dose_simulation = 'no'
+    is_irradiated = True
+    # is_irradiated = False
+    # antioxidant_dose_simulation = 'no'
     # antioxidant_dose_simulation = 'cst'
-    # antioxidant_dose_simulation = 'var'
+    antioxidant_dose_simulation = 'var'
     statin_dose_simulation = 'no'
     # statin_dose_simulation = 'cst'
     # statin_dose_simulation = 'var'
@@ -532,10 +532,10 @@ if __name__ == "__main__":
                                     is_stress_simulation)
     # np.random.random
     # initial_conditions = (150, 0, 0, 0, 0, 0, 0)
-    # initial_conditions = 'formed'
-    initial_conditions = 'not formed'
+    initial_conditions = 'formed'
+    # initial_conditions = 'not formed'
 
-    duration = 4800  # hours
+    duration = 3000  # hours
 
     a_time_array, some_compartments_results, eq_stress, eq_no_stress = compartmental_simulation(duration, 1 / 60,
                                                                                                 initial_conditions,

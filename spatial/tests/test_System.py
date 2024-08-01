@@ -1,7 +1,7 @@
 import numpy as np
-from System import ReactionDiffusionAtmApoeSystem
-from Space1D import SpatialSpace, TimeSpace
-from Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
+from spatial.oneD.System import ReactionDiffusionAtmApoeSystem
+from spatial.oneD.OneDimSpace import SpatialSpace, TimeSpace
+from spatial.oneD.Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
 
 
 def test_compute_dimers_next_density() -> bool:
@@ -31,11 +31,10 @@ def test_compute_dimers_next_density() -> bool:
 
     a_time_index = 2
 
-    a_system.compute_dimers_next_density(a_time_index)
-
+    actual_dimers_values = a_system.compute_dimers_next_density(a_time_index)
     expected_dimers_values = np.array([1.3475, 1.36, 1.37875, 1.36, 1.3475])
 
-    return np.allclose(a_system.dimers.next_values, expected_dimers_values)
+    return np.allclose(actual_dimers_values, expected_dimers_values)
 
 
 def test_compute_apoe_next_density() -> bool:
@@ -65,11 +64,11 @@ def test_compute_apoe_next_density() -> bool:
 
     a_time_index = 2
 
-    a_system.compute_apoe_next_density(a_time_index)
+    actual_apoe_values = a_system.compute_apoe_next_density(a_time_index)
 
     expected_apoe_values = np.array([4.25, 0., 0., 0., 0.])
 
-    return np.array_equal(a_system.apoe_proteins.next_values, expected_apoe_values)
+    return np.array_equal(actual_apoe_values, expected_apoe_values)
 
 
 def test_compute_complexes_next_density() -> bool:
@@ -99,11 +98,11 @@ def test_compute_complexes_next_density() -> bool:
 
     a_time_index = 2
 
-    a_system.compute_complexes_next_density(a_time_index)
+    actual_complexes_values = a_system.compute_complexes_next_density(a_time_index)
 
     expected_complexes_values = np.array([0.75, 0., 0., 0., 0.])
 
-    return np.array_equal(a_system.complexes.next_values, expected_complexes_values)
+    return np.array_equal(actual_complexes_values, expected_complexes_values)
 
 
 def test_compute_bulk_over_nucleus() -> bool:

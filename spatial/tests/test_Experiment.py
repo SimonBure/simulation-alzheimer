@@ -1,5 +1,5 @@
-from Experiment import Experiment
-from Space1D import TimeSpace
+from spatial.oneD.Experiment import Experiment
+from spatial.oneD.OneDimSpace import TimeSpace
 
 
 def test_get_indexes_start_and_end() -> bool:

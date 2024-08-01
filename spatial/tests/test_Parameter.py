@@ -1,7 +1,7 @@
 import numpy as np
-from Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
-from Space1D import TimeSpace
-import Experiment as Exp
+from spatial.oneD.Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
+from spatial.oneD.OneDimSpace import TimeSpace
+from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
 
 
 def test_impact_antioxidant_diffusion_parameter() -> bool:
@@ -10,7 +10,7 @@ def test_impact_antioxidant_diffusion_parameter() -> bool:
     a_diffusion_parameter = DiffusionParameter(1.5, 1.8)
     a_diffusion_parameter.setup_values_over_time(a_time_space)
 
-    an_antioxidant_experiment = Exp.Antioxidant(0.1, 0.3)
+    an_antioxidant_experiment = Antioxidant(0.1, 0.3)
     a_diffusion_parameter.impact_antioxidant(an_antioxidant_experiment, a_time_space)
 
     expected_over_time_values = np.array([1.8, 1.8, 1.5, 1.5, 1.5])
@@ -24,8 +24,8 @@ def test_impact_antioxidant_and_irradiation_transport_parameter() -> bool:
     a_transport_parameter = TransportParameter(1.1, 2.8)
     a_transport_parameter.setup_values_over_time(a_time_space)
 
-    an_antioxidant_experiment = Exp.Antioxidant(0.1, 0.3)
-    an_irradiation_experiment = Exp.Irradiation(0.5, 0.8)
+    an_antioxidant_experiment = Antioxidant(0.1, 0.3)
+    an_irradiation_experiment = Irradiation(0.5, 0.8)
 
     a_transport_parameter.impact_antioxidant(an_antioxidant_experiment, a_time_space)
     a_transport_parameter.impact_irradiation(an_irradiation_experiment, a_time_space)
@@ -40,8 +40,8 @@ def test_impact_antioxidant_and_irradiation_fragmentation_parameter() -> bool:
     a_fragmentation_parameter = FragmentationParameter(0.1, 0.6, 3.9)
     a_fragmentation_parameter.setup_values_over_time(a_time_space)
 
-    an_antioxidant_experiment = Exp.Antioxidant(0.4, 0.76)
-    an_irradiation_experiment = Exp.Irradiation(0.5, 0.8)
+    an_antioxidant_experiment = Antioxidant(0.4, 0.76)
+    an_irradiation_experiment = Irradiation(0.5, 0.8)
 
     a_fragmentation_parameter.impact_antioxidant(an_antioxidant_experiment, a_time_space)
     a_fragmentation_parameter.impact_irradiation(an_irradiation_experiment, a_time_space)
@@ -56,7 +56,7 @@ def test_impact_statin_permeability_parameter() -> bool:
     a_permeability_parameter = PermeabilityParameter(2.6, 0.3, 5.5)
     a_time_space = TimeSpace(1, 5)
     a_permeability_parameter.setup_values_over_time(a_time_space)
-    a_statin_experiment = Exp.Statin(0.25, 0.75)
+    a_statin_experiment = Statin(0.25, 0.75)
     a_permeability_parameter.impact_statin(a_statin_experiment, a_time_space)
     expected_over_time_values = np.array([0, 5.5, 5.5, 5.5, 0])
 
@@ -67,7 +67,7 @@ def test_get_permeability_depending_on_bulk() -> bool:
     a_permeability_parameter = PermeabilityParameter(2.6, 0.3, 5.5)
     a_time_space = TimeSpace(1, 5)
     a_permeability_parameter.setup_values_over_time(a_time_space)
-    a_statin_experiment = Exp.Statin(0.25, 0.75)
+    a_statin_experiment = Statin(0.25, 0.75)
     a_permeability_parameter.impact_statin(a_statin_experiment, a_time_space)
     a_bulk = 1.9
     a_time_index = 2

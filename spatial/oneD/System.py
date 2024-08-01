@@ -1,9 +1,9 @@
 import numpy as np
 from numpy import ndarray
-from DensityOverSpace import AtmMonomers, AtmDimers, ApoeProteins, ApoeAtmComplexes
-from Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
-from Space1D import TimeSpace, SpatialSpace
-from Experiment import Antioxidant, Irradiation, Statin
+from spatial.oneD.DensityOverSpace import AtmMonomers, AtmDimers, ApoeProteins, ApoeAtmComplexes
+from spatial.oneD.Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
+from spatial.oneD.OneDimSpace import TimeSpace, SpatialSpace
+from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
 
 
 class ReactionDiffusionAtmApoeSystem:
@@ -111,9 +111,21 @@ class ReactionDiffusionAtmApoeSystem:
                                 + self.ratio_fragmentation_dimers_complexes * fragmentation_rate
                                 * 2 * self.dimers.actual_values[1:-1])
 
-        reaction_array[0] = -self.monomers.actual_values[0]
-        reaction_array[-1] = -self.monomers.actual_values[-1]
+        reaction_array[0] = -self.monomers.actual_values[0] / self.time_space.step
+        reaction_array[-1] = -self.monomers.actual_values[-1] / self.time_space.step
 
         return reaction_array
 
-    # TODO method to assign the next_values of the different populations of the system
+    def set_next_values(self, monomers_next_values: ndarray, dimers_next_values: ndarray, apoe_next_values: ndarray,
+                        complexes_next_values: ndarray):
+        next_values = monomers_next_values, dimers_next_values, apoe_next_values, complexes_next_values
+        for next_val, pop in next_values, self.populations:
+            pop.set_next_values(next_val)
+
+    def update_for_next_step(self):
+        for pop in self.populations:
+            pop.update_values_for_next_step()
+
+    def fill_every_time_values(self, time_index: int):
+        for pop in self.populations:
+            pop.fill_every_time_values(time_index)

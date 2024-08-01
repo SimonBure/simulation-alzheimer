@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import ndarray
 import abc
-from Space1D import TimeSpace
+from spatial.oneD.OneDimSpace import TimeSpace
 
 
 class DensityOverSpace(abc.ABC):
@@ -25,6 +25,9 @@ class DensityOverSpace(abc.ABC):
 
     def update_values_for_next_step(self):
         self.actual_values[:] = self.next_values  # using slice to copy the values and not simply pointing to it
+
+    def fill_every_time_values(self, time_index: int):
+        self.every_time_values[time_index, :] = self.next_values
 
 
 # Shallow class for code clarity

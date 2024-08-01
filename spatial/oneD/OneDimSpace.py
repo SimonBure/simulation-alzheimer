@@ -3,7 +3,7 @@ import numpy as np
 from numpy import ndarray
 
 
-class Space1D(abc.ABC):
+class OneDimeSpace(abc.ABC):
     end: float
     nb_points: int
     step: float
@@ -21,10 +21,10 @@ class Space1D(abc.ABC):
 
 
 # Shallow class for code clarity
-class SpatialSpace(Space1D):
+class SpatialSpace(OneDimeSpace):
     pass
 
 
 # Shallow class for code clarity
-class TimeSpace(Space1D):
+class TimeSpace(OneDimeSpace):
     pass

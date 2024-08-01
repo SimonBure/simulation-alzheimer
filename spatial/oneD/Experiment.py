@@ -1,5 +1,5 @@
 import abc
-from Space1D import TimeSpace
+from spatial.oneD.OneDimSpace import TimeSpace
 
 
 class Experiment(abc.ABC):
