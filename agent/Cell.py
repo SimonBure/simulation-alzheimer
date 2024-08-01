@@ -31,7 +31,7 @@ class Cell:
             for p2 in self.particles_inside:
                 if p1 is not p2:
                     if p1.is_collision(p2):
-                        p1.x = 0
+                        p1.move_after_collision_with_particle(p2)
 
 
 class BorderCell(Cell):

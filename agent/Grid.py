@@ -60,10 +60,17 @@ class Grid:
                 cell.clear_particle()
 
     def map_particle_to_cell(self, particle: Particle) -> Cell:
-        x_in_cell_units = math.ceil(particle.x / self.cell_width)
-        y_in_cell_units = math.ceil(particle.y / self.cell_height)
-        return self.cell_grid[x_in_cell_units - 1][y_in_cell_units - 1]
+        index_x_axis = particle.x / self.cell_width
+        index_y_axis = particle.y / self.cell_height
+        x_in_cell_units = int(index_x_axis) if index_x_axis < self.nb_cells_width - 1 else self.nb_cells_width - 1
+        y_in_cell_units = int(index_y_axis) if index_y_axis < self.nb_cells_height - 1 else self.nb_cells_height - 1
+        return self.cell_grid[x_in_cell_units][y_in_cell_units]
 
     def collision_on_borders(self):
         for b_cell in self.border_cells:
             b_cell.collision_on_border(self.width, self.height)
+
+    def collision_inside_grid(self):
+        for line in self.cell_grid:
+            for cell in line:
+                cell.collisions_inside()

@@ -3,11 +3,11 @@ from agent.Particle import Particle
 
 
 def test_map_particle_to_cell() -> bool:
-    particles = [Particle(0.88, 0.88, 0, 0)]
-    a_grid = Grid(1, 1, 4, 4)
+    a_grid = Grid(1, 1, 11, 11)
     a_grid.setup_grid()
+    particles = [Particle(0.5, 0.5, 0, 0)]
     actual_cell = a_grid.map_particle_to_cell(particles[0])
-    expected_cell_id = 16
+    expected_cell_id = 1
     return actual_cell.id == expected_cell_id
 
 

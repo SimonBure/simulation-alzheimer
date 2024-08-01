@@ -11,7 +11,7 @@ if __name__ == "__main__":
     screen = pygame.display.set_mode((width, height), flags=pygame.SCALED)
 
     particles = [Particle(random.randint(0, width), random.randint(0, height), random.uniform(-1, 1),
-                          random.uniform(-1, 1)) for _ in range(10000)]
+                          random.uniform(-1, 1)) for _ in range(100)]
 
     clock = pygame.time.Clock()
 
@@ -38,6 +38,8 @@ if __name__ == "__main__":
             p.draw(screen)
 
         grid.collision_on_borders()
+
+        grid.collision_inside_grid()
 
         grid.clear_cells()
 
