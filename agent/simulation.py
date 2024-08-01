@@ -1,6 +1,6 @@
 import random
 import pygame
-from agent.Particle import Particle
+from agent.Particle import Particle, AtmProtein, ApoeProtein
 from Grid import Grid
 
 
@@ -13,11 +13,15 @@ if __name__ == "__main__":
     particles = [Particle(random.randint(0, width), random.randint(0, height), random.uniform(-1, 1),
                           random.uniform(-1, 1)) for _ in range(100)]
 
+    atms = [AtmProtein(random.randint(0, width), random.randint(0, height), random.uniform(-1, 1),
+                       random.uniform(-1, 1)) for _ in range(1000)]
+
+    apoes = [ApoeProtein(random.randint(width - 50, width), random.randint(0, height), 0, 0) for _ in range(100)]
+
     clock = pygame.time.Clock()
 
     grid = Grid(width, height, 100, 100)
     grid.setup_grid()
-    grid.fill_cells_with_particles(particles)
 
     is_running = True
 
@@ -33,17 +37,27 @@ if __name__ == "__main__":
 
         screen.fill(pygame.color.Color("white"))
 
-        for p in particles:
-            p.move()
-            p.draw(screen)
+        grid.clear_cells()
 
-        grid.collision_on_borders()
+        # for p in particles:
+        #     p.move()
+        #     p.draw(screen)
+
+        for a in atms:
+            a.move()
+            a.draw(screen)
+
+        for apoe in apoes:
+            apoe.move()
+            apoe.draw(screen)
+
+        # grid.fill_cells_with_particles(particles)
+        grid.fill_cells_with_particles(atms)
+        grid.fill_cells_with_particles(apoes)
 
         grid.collision_inside_grid()
 
-        grid.clear_cells()
-
-        grid.fill_cells_with_particles(particles)
+        grid.collision_on_borders()
 
         pygame.display.flip()
 

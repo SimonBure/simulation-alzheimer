@@ -29,26 +29,33 @@ class Particle(abc.ABC):
     def draw(self, screen):
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
 
-    def distance(self, particle: 'Particle') -> float:
+    def compute_distance(self, particle: 'Particle') -> float:
         return math.sqrt((particle.x - self.x) ** 2 + (particle.y - self.y) ** 2)
 
-    def distance_x_axis(self, particle: 'Particle') -> float:
+    def compute_distance_x_axis(self, particle: 'Particle') -> float:
         return math.fabs(particle.x - self.x)
 
-    def distance_y_axis(self, particle: 'Particle') -> float:
+    def compute_distance_y_axis(self, particle: 'Particle') -> float:
         return math.fabs(particle.y - self.y)
 
+    def compute_angle(self, particle: 'Particle') -> float:
+        return math.acos(self.compute_distance_x_axis(particle) / self.compute_distance(particle))
+
     def is_collision(self, particle: 'Particle') -> bool:
-        return self.distance(particle) < self.radius + particle.radius
+        return self.compute_distance(particle) < self.radius + particle.radius
+
+    def is_collision_along_x_axis(self, particle: 'Particle') -> bool:
+        angle = self.compute_angle(particle)
+        return (0. <= angle <= math.pi / 4) or (3 * math.pi / 4 <= angle <= math.pi)
 
     def compute_collision_distance(self, particle: 'Particle') -> float:
-        return self.radius + particle.radius - self.distance(particle)
+        return self.radius + particle.radius - self.compute_distance(particle)
 
     def compute_collision_distance_x_axis(self, particle: 'Particle') -> float:
-        return self.radius + particle.radius - self.distance_x_axis(particle)
+        return self.radius + particle.radius - self.compute_distance_x_axis(particle)
 
     def compute_collision_distance_y_axis(self, particle: 'Particle') -> float:
-        return self.radius + particle.radius - self.distance_y_axis(particle)
+        return self.radius + particle.radius - self.compute_distance_y_axis(particle)
 
     def move_after_collision_with_particle(self, particle: 'Particle'):
         collision_dist_x = self.compute_collision_distance_x_axis(particle)
@@ -104,12 +111,13 @@ class Particle(abc.ABC):
 class AtmProtein(Particle):
     def __init__(self, x: float, y: float, vx: float, vy: float):
         super().__init__(x, y, vx, vy)
-        self.radius = (3 * 3.66 / (4 * math.pi)) ** (1 / 3)
+        base_protein = ApoeProtein(x, y, vx, vy)
+        self.radius = base_protein.radius * 1.5322
         self.color = pygame.color.Color("red")
 
 
 class ApoeProtein(Particle):
     def __init__(self, x: float, y: float, vx: float, vy: float):
         super().__init__(x, y, vx, vy)
-        self.radius = 1
+        self.radius = 3.
         self.color = pygame.color.Color("blue")
