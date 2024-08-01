@@ -1,5 +1,4 @@
 import pygame
-import random
 import abc
 import math
 
@@ -15,7 +14,7 @@ class Particle(abc.ABC):
     def __init__(self, x: float, y: float, vx: float, vy: float):
         self.x = x
         self.y = y
-        self.radius = 1.
+        self.radius = 5.
         self.vx = vx
         self.vy = vy
         self.color = pygame.color.Color("black")
@@ -65,6 +64,12 @@ class Particle(abc.ABC):
         else:
             self.y += collision_dist_y / 2
 
+    def is_collision_on_the_x_axis(self, particle: 'Particle') -> bool:
+        return particle.x - self.x > 0
+
+    def is_collision_above(self, particle: 'Particle') -> bool:
+        return particle.y - self.y > 0
+
     def is_collision_on_right_border(self, border_width: float) -> bool:
         return self.x + self.radius > border_width
 
@@ -97,14 +102,14 @@ class Particle(abc.ABC):
 
 
 class AtmProtein(Particle):
-    def __init__(self, x: float, y: float):
-        super().__init__(x, y)
+    def __init__(self, x: float, y: float, vx: float, vy: float):
+        super().__init__(x, y, vx, vy)
         self.radius = (3 * 3.66 / (4 * math.pi)) ** (1 / 3)
         self.color = pygame.color.Color("red")
 
 
 class ApoeProtein(Particle):
-    def __init__(self, x: float, y: float):
-        super().__init__(x, y)
+    def __init__(self, x: float, y: float, vx: float, vy: float):
+        super().__init__(x, y, vx, vy)
         self.radius = 1
         self.color = pygame.color.Color("blue")

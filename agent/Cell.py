@@ -32,6 +32,11 @@ class Cell:
                 if p1 is not p2:
                     if p1.is_collision(p2):
                         p1.move_after_collision_with_particle(p2)
+                        p2.move_after_collision_with_particle(p1)
+                        p1.collision_x()
+                        p2.collision_x()
+                        p1.collision_y()
+                        p2.collision_y()
 
 
 class BorderCell(Cell):

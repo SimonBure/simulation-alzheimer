@@ -29,7 +29,7 @@ if __name__ == "__main__":
                 if event.key == pygame.K_ESCAPE:
                     is_running = False
 
-        pygame.display.set_caption(f"Individual Based Model Simulation\tFPS: {clock.get_fps()}")
+        pygame.display.set_caption(f"Individual Based Model Simulation\tFPS: {int(clock.get_fps())}")
 
         screen.fill(pygame.color.Color("white"))
 
