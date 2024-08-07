@@ -5,7 +5,7 @@ from spatial.oneD.OneDimSpace import TimeSpace
 class Experiment(abc.ABC):
     time_experiments: tuple[tuple[float, float], ...]
 
-    def __init__(self, *time_experiments: tuple[float, float]):
+    def __init__(self, *time_experiments: tuple[float, float] | tuple[tuple[float, float], ...] | None):
         self.time_experiments = time_experiments
 
     def get_indexes_starting_times(self, time_space: TimeSpace) -> list[int]:

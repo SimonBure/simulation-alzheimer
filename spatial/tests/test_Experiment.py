@@ -34,7 +34,7 @@ def test_get_indexes_starting_time() -> bool:
 
 
 def test_get_indexes_ending_time() -> bool:
-    a_exp_time = (0, 0.88)
+    a_exp_time = (0., 0.88)
     another_exp_time = (2., 3.)
     an_experiment = Experiment(a_exp_time, another_exp_time)
     a_time_space = TimeSpace(3, 10)
