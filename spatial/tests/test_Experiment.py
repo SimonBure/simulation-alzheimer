@@ -2,6 +2,15 @@ from spatial.oneD.Experiment import Experiment
 from spatial.oneD.OneDimSpace import TimeSpace
 
 
+def test_all_constructor() -> bool:
+    Experiment()
+    Experiment(())
+    Experiment((0, 1))
+    Experiment((1, 2), (2, 3))
+    Experiment(((1, 2), (2, 3)))
+    return True
+
+
 def test_get_index_starting_time() -> bool:
     a_exp_time = (0, 1)
     an_exp = Experiment(a_exp_time)
@@ -47,6 +56,7 @@ def test_get_indexes_ending_time() -> bool:
 
 
 if __name__ == "__main__":
+    assert test_all_constructor()
     assert test_get_index_starting_time()
     assert test_get_indexes_times_empty_experiment()
     assert test_get_indexes_starting_time()
