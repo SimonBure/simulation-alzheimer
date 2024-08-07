@@ -76,9 +76,39 @@ def test_get_permeability_depending_on_bulk() -> bool:
     return actual_bulk - expected_bulk < 1e-8
 
 
+def test_impact_empty_experiment_on_parameter() -> bool:
+    a_time_space = TimeSpace(1, 5)
+    a_parameter = DiffusionParameter(1.5, 2.8)
+    a_parameter.setup_values_over_time(a_time_space)
+    not_an_experiment = Antioxidant()
+    a_parameter.impact_antioxidant(not_an_experiment, a_time_space)
+    expected_over_time_values = np.array([1.5, 1.5, 1.5, 1.5, 1.5])
+
+    return np.array_equal(a_parameter.over_time_values, expected_over_time_values)
+
+
+def test_impact_empty_experiment_on_fragmentation_parameter() -> bool:
+    a_time_space = TimeSpace(1, 5)
+
+    a_fragmentation_parameter = FragmentationParameter(1., 2., 5.0)
+    a_fragmentation_parameter.setup_values_over_time(a_time_space)
+
+    not_an_aox_exp = Antioxidant()
+    not_an_irr_exp = Irradiation()
+
+    a_fragmentation_parameter.impact_antioxidant(not_an_aox_exp, a_time_space)
+    a_fragmentation_parameter.impact_irradiation(not_an_irr_exp, a_time_space)
+
+    expected_over_time_values = np.array([1., 1., 1., 1., 1.])
+
+    return np.array_equal(a_fragmentation_parameter.over_time_values, expected_over_time_values)
+
+
 if __name__ == "__main__":
     assert test_impact_antioxidant_diffusion_parameter()
     assert test_impact_antioxidant_and_irradiation_transport_parameter()
     assert test_impact_antioxidant_and_irradiation_fragmentation_parameter()
     assert test_impact_statin_permeability_parameter()
     assert test_get_permeability_depending_on_bulk()
+    assert test_impact_empty_experiment_on_parameter()
+    assert test_impact_empty_experiment_on_fragmentation_parameter()

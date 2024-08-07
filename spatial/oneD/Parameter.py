@@ -30,7 +30,8 @@ class DiffusionParameter(Parameter):
     def impact_antioxidant(self, antioxidant: Antioxidant, time_space: TimeSpace):
         experiment_start_index = antioxidant.get_index_starting_time(time_space)
         experiment_end_index = antioxidant.get_index_ending_time(time_space)
-        self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.antioxidant_value
+        if experiment_start_index != experiment_end_index != 0:
+            self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.antioxidant_value
 
 
 class TransportParameter(DiffusionParameter):
@@ -47,7 +48,8 @@ class TransportParameter(DiffusionParameter):
     def impact_irradiation(self, irradiation: Irradiation, time_space: TimeSpace):
         experiment_start_index = irradiation.get_index_starting_time(time_space)
         experiment_end_index = irradiation.get_index_ending_time(time_space)
-        self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.irradiation_value
+        if experiment_start_index != experiment_end_index != 0:
+            self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.irradiation_value
 
 
 class FragmentationParameter(TransportParameter, DiffusionParameter):
@@ -63,6 +65,7 @@ class FragmentationParameter(TransportParameter, DiffusionParameter):
                                                     time_space: TimeSpace):
         antioxidant_start, antioxidant_end = antioxidant.get_indexes_start_and_end(time_space)
         irradiation_start, irradiation_end = irradiation.get_indexes_start_and_end(time_space)
+
         if irradiation_start <= antioxidant_start < antioxidant_end <= irradiation_end:
             self.over_time_values[antioxidant_start:antioxidant_end + 1] = self.antioxidant_and_irradiation_value
         elif antioxidant_start <= irradiation_start < irradiation_end <= antioxidant_end:
@@ -91,7 +94,8 @@ class PermeabilityParameter:
 
     def impact_statin(self, statin: Statin, time_space: TimeSpace):
         statin_start_index, statin_end_index = statin.get_indexes_start_and_end(time_space)
-        self.statin_impact_over_time[statin_start_index:statin_end_index + 1] = self.statin_impact
+        if statin_start_index != statin_end_index != 0:
+            self.statin_impact_over_time[statin_start_index:statin_end_index + 1] = self.statin_impact
 
     def get_permeability_depending_on_bulk(self, bulk: float, time_index: int) -> float:
         return (self.ordinate - self.abscissa * bulk) * (1 + float(self.statin_impact_over_time[time_index]))

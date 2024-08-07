@@ -26,6 +26,9 @@ class ReactionDiffusionAtmApoeSystem:
     spatial_space: SpatialSpace
     time_space: TimeSpace
 
+    def __init__(self):
+        pass
+
     def setup_spaces(self, spatial_space: SpatialSpace, time_space: TimeSpace):
         self.spatial_space = spatial_space
         self.time_space = time_space

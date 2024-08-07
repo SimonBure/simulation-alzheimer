@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import ndarray
+from typing import Optional
 import scipy.sparse as sparse
 from scipy.sparse.linalg import factorized
 from spatial.oneD.OneDimSpace import SpatialSpace, TimeSpace
@@ -17,7 +18,7 @@ class Simulation1D:
 
     atm_apoe_system: ReactionDiffusionAtmApoeSystem
 
-    experiments: [Antioxidant, Irradiation, Statin]
+    experiments: tuple[Antioxidant, Irradiation, Statin]
 
     def __init__(self, space_length: float, nb_space_points: int, maximum_time: float, nb_time_points: int):
         self.time = 0.
@@ -28,6 +29,8 @@ class Simulation1D:
 
         self.atm_apoe_system = ReactionDiffusionAtmApoeSystem()
         self.atm_apoe_system.setup_spaces(self.spatial_space, self.time_space)
+
+        self.experiments = ()
 
     def setup_atm_apoe_system(self, k: float, ka: float, diffusion_coefs: tuple[float, float],
                               transport_coefs: tuple[float, float], fragmentation_coefs: tuple[float, float, float],
