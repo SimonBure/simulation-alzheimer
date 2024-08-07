@@ -16,7 +16,8 @@ if __name__ == "__main__":
     atms = [AtmProtein(random.randint(0, width), random.randint(0, height), random.uniform(-1, 1),
                        random.uniform(-1, 1)) for _ in range(1000)]
 
-    apoes = [ApoeProtein(random.randint(width - 50, width), random.randint(0, height), 0, 0) for _ in range(100)]
+    apoes = [ApoeProtein(random.randint(width - 50, width), random.randint(0, height), 0, 0, width - 50)
+             for _ in range(100)]
 
     clock = pygame.time.Clock()
 
@@ -45,6 +46,7 @@ if __name__ == "__main__":
 
         for a in atms:
             a.move()
+            a.brownian_motion()
             a.draw(screen)
 
         for apoe in apoes:

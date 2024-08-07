@@ -13,7 +13,7 @@ if __name__ == "__main__":
     coefs_migration_cytoplasm_to_crown = a2, b2, n2, e2 = 400, 0.4, 15, 20
     coefs_migration_crown_to_nucleus = a3, b3, n3, e3, f3 = 8, 0.5, 5, 0.5, 1
     coefs_complex_formation = a4, e4 = 0.0003, 20
-    coefs_dimer_formation_crown = a5, b5, n5, e5 = 0.00012, 0, 1, 20
+    coefs_dimer_formation_crown = a5, b5, n5, e5 = 0.00012, 1, 1, 20
     e6 = 0.5
     coefs_fragmentation = cs, e0 = 0.0002, 20
 
@@ -37,4 +37,6 @@ if __name__ == "__main__":
 
     a_sim.simulate()
 
-    a_sim.plot_compartments_crown()
+    a_sim.plot_all_compartments()
+
+    # TODO why compartments not changing ?
