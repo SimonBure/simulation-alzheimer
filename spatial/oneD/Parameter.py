@@ -28,10 +28,10 @@ class DiffusionParameter(Parameter):
         self.antioxidant_value = antioxidant_value
 
     def impact_antioxidant(self, antioxidant: Antioxidant, time_space: TimeSpace):
-        experiment_start_index = antioxidant.get_index_starting_time(time_space)
-        experiment_end_index = antioxidant.get_index_ending_time(time_space)
-        if experiment_start_index != experiment_end_index != 0:
-            self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.antioxidant_value
+        exp_start_indexes, exp_end_indexes = antioxidant.get_indexes_starting_and_ending_times(time_space)
+        for start, end in zip(exp_start_indexes, exp_end_indexes):
+            if start != end != 0:
+                self.over_time_values[start:end + 1] = self.antioxidant_value
 
 
 class TransportParameter(DiffusionParameter):
@@ -46,10 +46,10 @@ class TransportParameter(DiffusionParameter):
         self.over_space_values = np.exp(- space_constant_value * spatial_space.space)
 
     def impact_irradiation(self, irradiation: Irradiation, time_space: TimeSpace):
-        experiment_start_index = irradiation.get_index_starting_time(time_space)
-        experiment_end_index = irradiation.get_index_ending_time(time_space)
-        if experiment_start_index != experiment_end_index != 0:
-            self.over_time_values[experiment_start_index:experiment_end_index + 1] = self.irradiation_value
+        exp_start_indexes, exp_end_indexes = irradiation.get_indexes_starting_and_ending_times(time_space)
+        for start, end in zip(exp_start_indexes, exp_end_indexes):
+            if start != end != 0:
+                self.over_time_values[start:end + 1] = self.irradiation_value
 
 
 class FragmentationParameter(TransportParameter, DiffusionParameter):
@@ -63,19 +63,22 @@ class FragmentationParameter(TransportParameter, DiffusionParameter):
 
     def impact_antioxidant_and_irradiation_combined(self, antioxidant: Antioxidant, irradiation: Irradiation,
                                                     time_space: TimeSpace):
-        antioxidant_start, antioxidant_end = antioxidant.get_indexes_start_and_end(time_space)
-        irradiation_start, irradiation_end = irradiation.get_indexes_start_and_end(time_space)
-
-        if irradiation_start <= antioxidant_start < antioxidant_end <= irradiation_end:
-            self.over_time_values[antioxidant_start:antioxidant_end + 1] = self.antioxidant_and_irradiation_value
-        elif antioxidant_start <= irradiation_start < irradiation_end <= antioxidant_end:
-            self.over_time_values[irradiation_start:irradiation_end + 1] = self.antioxidant_and_irradiation_value
-        elif antioxidant_start <= irradiation_start <= antioxidant_end:
-            self.over_time_values[irradiation_start:antioxidant_end + 1] = self.antioxidant_and_irradiation_value
-        elif irradiation_start <= antioxidant_start <= irradiation_end:
-            self.over_time_values[antioxidant_start:irradiation_end + 1] = self.antioxidant_and_irradiation_value
-        else:
-            pass
+        aox_start_times, aox_end_times = antioxidant.get_indexes_starting_and_ending_times(time_space)
+        irr_start_times, irr_end_times = irradiation.get_indexes_starting_and_ending_times(time_space)
+        # TODO test if aox and irr times are crossing with the lists of several starts and ending times
+        # TODO find where the aox and irr are crossing to update the fragmentation parameter accordingly
+        for aox_start, aox_end in zip(aox_start_times, aox_end_times):
+            for irr_start, irr_end in zip(irr_start_times, irr_end_times):
+                if irr_start <= aox_start < aox_end <= irr_end:
+                    self.over_time_values[aox_start:aox_end + 1] = self.antioxidant_and_irradiation_value
+                elif aox_start <= irr_start < irr_end <= aox_end:
+                    self.over_time_values[irr_start:irr_end + 1] = self.antioxidant_and_irradiation_value
+                elif aox_start <= irr_start <= aox_end:
+                    self.over_time_values[irr_start:aox_end + 1] = self.antioxidant_and_irradiation_value
+                elif irr_start <= aox_start <= irr_end:
+                    self.over_time_values[aox_start:irr_end + 1] = self.antioxidant_and_irradiation_value
+                else:
+                    pass
 
 
 class PermeabilityParameter:
@@ -93,9 +96,10 @@ class PermeabilityParameter:
         self.statin_impact_over_time = np.zeros(time_space.nb_points)
 
     def impact_statin(self, statin: Statin, time_space: TimeSpace):
-        statin_start_index, statin_end_index = statin.get_indexes_start_and_end(time_space)
-        if statin_start_index != statin_end_index != 0:
-            self.statin_impact_over_time[statin_start_index:statin_end_index + 1] = self.statin_impact
+        statin_start_index, statin_end_index = statin.get_indexes_starting_and_ending_times(time_space)
+        for start, end in zip(statin_start_index, statin_end_index):
+            if start != end != 0:
+                self.statin_impact_over_time[start:end + 1] = self.statin_impact
 
     def get_permeability_depending_on_bulk(self, bulk: float, time_index: int) -> float:
         return (self.ordinate - self.abscissa * bulk) * (1 + float(self.statin_impact_over_time[time_index]))

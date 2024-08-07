@@ -3,25 +3,25 @@ from spatial.oneD.OneDimSpace import TimeSpace
 
 
 class Experiment(abc.ABC):
-    start_time: float
-    end_time: float
+    time_experiments: tuple[tuple[float, float], ...]
 
-    def __init__(self, start_experiment: float = 0., end_experiment: float = 0.):
-        self.start_time = start_experiment
-        self.end_time = end_experiment
+    def __init__(self, *time_experiments: tuple[float, float]):
+        self.time_experiments = time_experiments
 
-    def get_index_starting_time(self, time_space: TimeSpace) -> int:
-        start_index = time_space.map_value_to_index(self.start_time)
-        return start_index
+    def get_indexes_starting_times(self, time_space: TimeSpace) -> list[int]:
+        starting_times = []
+        for t_exp in self.time_experiments:
+            starting_times.append(time_space.map_value_to_index(t_exp[0]))
+        return starting_times
 
-    def get_index_ending_time(self, time_space: TimeSpace) -> int:
-        end_index = time_space.map_value_to_index(self.end_time)
-        return end_index
+    def get_indexes_ending_times(self, time_space: TimeSpace) -> list[int]:
+        ending_times = []
+        for t_exp in self.time_experiments:
+            ending_times.append(time_space.map_value_to_index(t_exp[1]))
+        return ending_times
 
-    def get_indexes_start_and_end(self, time_space) -> (int, int):
-        start_index = time_space.map_value_to_index(self.start_time)
-        end_index = time_space.map_value_to_index(self.end_time)
-        return start_index, end_index
+    def get_indexes_starting_and_ending_times(self, time_space: TimeSpace) -> tuple[list[int], list[int]]:
+        return self.get_indexes_starting_times(time_space), self.get_indexes_ending_times(time_space)
 
 
 # Shallow class for code clarity
