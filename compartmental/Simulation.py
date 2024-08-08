@@ -68,6 +68,7 @@ class Simulation:
         antioxidant_exp = Antioxidant(antioxidant_start_and_ending_times)
         irradiation_exp = Irradiation(irradiation_start_and_ending_times)
         statin_exp = Statin(statin_start_and_ending_times)
+        self.experiments = (antioxidant_exp, irradiation_exp, statin_exp)
 
         antioxidant_dose = AntioxidantDose(dose_antioxidant, self.time_space, antioxidant_exp)
         antioxidant_dose.setup_dose_over_time(self.time_space, antioxidant_exp)
@@ -100,85 +101,88 @@ class Simulation:
                                                        - self.compartmental_system.dimers_crown.actual_value)
 
     def plot_all_compartments(self):
-        fig, (_, __) = plt.subplots(1, 2, figsize=(12, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        print(type(ax1))
 
-        self.plot_compartments_cytoplasm_and_nucleus()
-        self.plot_compartments_crown()
+        self.plot_compartments_cytoplasm_and_nucleus(ax1)
+        self.plot_compartments_crown(ax2)
 
         plt.subplots_adjust(wspace=0.4)  # setting horizontal space between the two plots
 
         plt.show()
 
-    def plot_compartments_cytoplasm_and_nucleus(self):
+    def plot_compartments_cytoplasm_and_nucleus(self, ax: plt.Axes):
         dimers_cyto, monomers_cyto, monomers_nucleus = (
             self.compartmental_system.get_compartments_cytoplasm_and_nucleus_time_values())
 
-        plt.plot(self.time_space.space, dimers_cyto, label="$D_C", color="blue")
-        plt.plot(self.time_space.space, monomers_cyto, label='$M_C$', color='green')
-        plt.plot(self.time_space.space, monomers_nucleus, label='$M_N$', color='red')
+        ax.plot(self.time_space.space, dimers_cyto, label="$D_C$", color="blue")
+        ax.plot(self.time_space.space, monomers_cyto, label='$M_C$', color='green')
+        ax.plot(self.time_space.space, monomers_nucleus, label='$M_N$', color='red')
+        print(ax)
+        ax.set_title("Populations evolution in the cytoplasm and nucleus")
 
-        plt.title("Populations evolution in the cytoplasm & nucleus")
+        self.label_axis_compartments(ax)
 
-        self.label_axis_compartments()
+        self.highlight_time_zones_with_experiment(ax)
 
-        self.highlight_time_zones_with_experiment()
-
-        self.caption_plot()
-
-    @staticmethod
-    def label_axis_compartments():
-        Simulation.label_time_axis()
-        plt.ylabel('Populations', fontsize=12)
+        self.caption_plot(ax)
 
     @staticmethod
-    def label_time_axis():
-        plt.xlabel('Time ($h$)', fontsize=12)
+    def label_axis_compartments(ax: plt.Axes):
+        Simulation.label_time_axis(ax)
+        ax.set_ylabel('Populations', fontsize=12)
 
-    def highlight_time_zones_with_experiment(self):
+    @staticmethod
+    def label_time_axis(ax: plt.Axes):
+        ax.set_xlabel('Time ($h$)', fontsize=12)
+
+    def highlight_time_zones_with_experiment(self, ax: plt.Axes):
         for aox_starting_ending_times in self.experiments[1].time_experiments:
-            plt.axvspan(aox_starting_ending_times[0], aox_starting_ending_times[1], color='green', alpha=0.3,
-                        label='Antioxidant')
+            ax.axvspan(aox_starting_ending_times[0], aox_starting_ending_times[1], color='green', alpha=0.3,
+                       label='Antioxidant')
         for irr_starting_ending_times in self.experiments[1].time_experiments:
-            plt.axvspan(irr_starting_ending_times[0], irr_starting_ending_times[1], color='red', alpha=0.3,
-                        label='Irradiation')
+            ax.axvspan(irr_starting_ending_times[0], irr_starting_ending_times[1], color='red', alpha=0.3,
+                       label='Irradiation')
         for statin_starting_ending_times in self.experiments[2].time_experiments:
-            plt.axvspan(statin_starting_ending_times[0], statin_starting_ending_times[1], color='yellow', alpha=0.3,
-                        label='Statin')
+            ax.axvspan(statin_starting_ending_times[0], statin_starting_ending_times[1], color='yellow', alpha=0.3,
+                       label='Statin')
 
     @staticmethod
-    def caption_plot():
-        plt.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
+    def caption_plot(ax: plt.Axes):
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
 
-    def plot_compartments_crown(self):
+    def plot_compartments_crown(self, ax: plt.Axes):
         monomers, apoe, complexes, dimers = self.compartmental_system.get_compartments_crown_time_values()
 
-        plt.plot(self.time_space.space, monomers, label='$M_A$', color='dodgerblue')
-        plt.plot(self.time_space.space, apoe, label='$A$', color='magenta')
-        plt.plot(self.time_space.space, complexes, label='$C_A$', color='darkorange')
-        plt.plot(self.time_space.space, dimers, label='$D_A$', color='crimson')
+        ax.plot(self.time_space.space, monomers, label='$M_A$', color='dodgerblue')
+        ax.plot(self.time_space.space, apoe, label='$A$', color='magenta')
+        ax.plot(self.time_space.space, complexes, label='$C_A$', color='darkorange')
+        ax.plot(self.time_space.space, dimers, label='$D_A$', color='crimson')
 
         # Titles & labels
-        plt.title("Populations evolution in the perinuclear crown")
+        ax.set_title("Populations evolution in the perinuclear crown")
 
-        self.label_axis_compartments()
+        self.label_axis_compartments(ax)
 
-        self.highlight_time_zones_with_experiment()
+        self.highlight_time_zones_with_experiment(ax)
 
-        self.caption_plot()
+        self.caption_plot(ax)
 
     def plot_crown_formation_speed_along_time(self):
-        plt.plot(self.time_space.space, self.crown_formation_speed, color='blue')
+        fig, ax = plt.subplots()
+        ax.plot(self.time_space.space, self.crown_formation_speed, color='blue')
 
         plt.title("Evolution of crown formation speed along time")
-        self.label_time_axis()
-        self.label_crown_formation_speed_axis()
+        self.label_time_axis(ax)
+        self.label_crown_formation_speed_axis(ax)
 
     def plot_crown_formation_speed_along_rate(self, rate_values_over_time: ndarray, rate_label: str):
-        plt.plot(rate_values_over_time, self.crown_formation_speed, color='blue')
+        fig, ax = plt.subplots()
+        ax.plot(rate_values_over_time, self.crown_formation_speed, color='blue')
 
-        plt.xlabel(rate_label + "($h^{-1}$)")
-        self.label_crown_formation_speed_axis()
+        ax.xlabel(rate_label + "($h^{-1}$)")
+        self.label_crown_formation_speed_axis(ax)
 
     @staticmethod
-    def label_crown_formation_speed_axis():
-        plt.ylabel("Crown formation speed ($h^{-1}$)")
+    def label_crown_formation_speed_axis(ax: plt.Axes):
+        ax.ylabel("Crown formation speed ($h^{-1}$)")
