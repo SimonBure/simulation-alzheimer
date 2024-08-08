@@ -29,12 +29,15 @@ class Dose(abc.ABC):
 
 
 class AntioxidantDose(Dose):
-    pass
-
-
-class StatinDose(Dose):
-    pass
+    def __init__(self, dose: float, time_space: TimeSpace, exp: Experiment = None):
+        super().__init__(dose, time_space, exp)
 
 
 class IrradiationDose(Dose):
-    pass
+    def __init__(self, dose: float, time_space: TimeSpace, exp: Experiment = None):
+        super().__init__(dose, time_space, exp)
+
+
+class StatinDose(Dose):
+    def __init__(self, dose: float, time_space: TimeSpace, exp: Experiment = None):
+        super().__init__(dose, time_space, exp)

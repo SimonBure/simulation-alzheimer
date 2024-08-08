@@ -31,14 +31,17 @@ class Experiment(abc.ABC):
 
 # Shallow class for code clarity
 class Antioxidant(Experiment):
-    pass
+    def __init__(self, *time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
+        super().__init__(time_experiments)
 
 
 # Shallow class for code clarity
 class Irradiation(Experiment):
-    pass
+    def __init__(self, *time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
+        super().__init__(time_experiments)
 
 
 # Shallow class for code clarity
 class Statin(Experiment):
-    pass
+    def __init__(self, *time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
+        super().__init__(time_experiments)
