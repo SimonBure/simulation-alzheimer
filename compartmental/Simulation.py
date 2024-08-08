@@ -4,9 +4,9 @@ from numpy import ndarray
 from spatial.oneD.OneDimSpace import TimeSpace
 from compartmental.System import CompartmentalSystem
 from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
-from compartmental.DynamicRate import (DimerFormationRateCrown, DimerFormationRateCytoplasm, MonomerDispersionRate,
-                                       ComplexesFormationRate, MigrationRateCytoplasmToPc, MigrationRatePcToNucleus,
-                                       FragmentationRate)
+from compartmental.Rate import (ConstantRate, DimerFormationRateCrown, DimerFormationRateCytoplasm,
+                                MonomerDispersionRate, ComplexesFormationRate, MigrationRateCytoplasmToPc,
+                                MigrationRatePcToNucleus, FragmentationRate)
 from compartmental.Dose import AntioxidantDose, StatinDose, IrradiationDose
 
 
@@ -47,16 +47,18 @@ class Simulation:
 
         dc0, mc0, ma0, mn0, a0, ca0, da0 = initial_conditions
 
-        k1 = DimerFormationRateCytoplasm(a1, e1)
-        k2 = MigrationRateCytoplasmToPc(a2, b2, n2, e2)
-        k3 = MigrationRatePcToNucleus(a3, b3, n3, e3, f3)
-        k4 = ComplexesFormationRate(a4, e4)
-        k5 = DimerFormationRateCrown(a5, b5, n5, e5)
-        k6 = MonomerDispersionRate(e6)
-        s = FragmentationRate(cs, e0)
+        d0 = ConstantRate("d_0", dimers_degradation)
+        d1 = ConstantRate("d1", monomers_degradation_nucleus)
+        lam = ConstantRate("λ", dimers_production)
+        k1 = DimerFormationRateCytoplasm("k_1", a1, e1)
+        k2 = MigrationRateCytoplasmToPc("k_2", a2, b2, n2, e2)
+        k3 = MigrationRatePcToNucleus("k_2", a3, b3, n3, e3, f3)
+        k4 = ComplexesFormationRate("k_4", a4, e4)
+        k5 = DimerFormationRateCrown("k_5", a5, b5, n5, e5)
+        k6 = MonomerDispersionRate("k_6", e6)
+        s = FragmentationRate("s", cs, e0)
 
-        self.compartmental_system.setup_rates(dimers_production, dimers_degradation, monomers_degradation_nucleus,
-                                              k1, k2, k3, k4, k5, k6, s)
+        self.compartmental_system.setup_rates(lam, d0, d1, k1, k2, k3, k4, k5, k6, s)
         self.compartmental_system.setup_initial_conditions(dc0, mc0, ma0, mn0, a0, ca0, da0)
 
     def setup_experimental_conditions(self, antioxidant_start_and_ending_times: tuple | tuple[float, float] | tuple[tuple[float, float], ...],
