@@ -1,19 +1,26 @@
 import numpy as np
 from numpy import ndarray
 from spatial.oneD.OneDimSpace import TimeSpace
-from compartmental.DynamicRate import DynamicRate
+from compartmental.Rate import DynamicRate
 
 
 class Compartment:
+    name: str
+
     actual_value: float
     next_value: float
     time_values: ndarray
 
-    def __init__(self, initial_value: float, time_space: TimeSpace):
+    def __init__(self, name: str, initial_value: float, time_space: TimeSpace):
+        self.name = name
         self.actual_value = initial_value
         self.next_value = 0
         self.time_values = np.zeros(time_space.nb_points)
         self.time_values[0] = initial_value
+
+    def __str__(self) -> str:
+        s = f"{self.name:>12}{self.actual_value:>14.2f}{self.next_value:>12.2f}"
+        return s
 
     def __add__(self, other) -> float:
         if isinstance(other, (DynamicRate, Compartment)):

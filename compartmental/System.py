@@ -1,9 +1,9 @@
 from numpy import ndarray
 from compartmental.Compartment import Compartment
 from compartmental.Dose import AntioxidantDose, IrradiationDose, StatinDose
-from compartmental.DynamicRate import (DimerFormationRateCrown, DimerFormationRateCytoplasm, MonomerDispersionRate,
-                                       ComplexesFormationRate, MigrationRateCytoplasmToPc, MigrationRatePcToNucleus,
-                                       FragmentationRate)
+from compartmental.Rate import (ConstantRate, DimerFormationRateCrown, DimerFormationRateCytoplasm,
+                                MonomerDispersionRate, ComplexesFormationRate, MigrationRateCytoplasmToPc,
+                                MigrationRatePcToNucleus, FragmentationRate)
 from spatial.oneD.OneDimSpace import TimeSpace
 
 
@@ -17,8 +17,9 @@ class CompartmentalSystem:
     dimers_crown: Compartment
     compartments: tuple[Compartment, Compartment, Compartment, Compartment, Compartment, Compartment, Compartment]
 
-    degradation_rate_dimers: float
-    degradation_rate_monomers_nucleus: float
+    production_rate_dimers: ConstantRate
+    degradation_rate_dimers: ConstantRate
+    degradation_rate_monomers_nucleus: ConstantRate
     k1: DimerFormationRateCytoplasm
     k2: MigrationRateCytoplasmToPc
     k3: MigrationRatePcToNucleus
@@ -26,7 +27,9 @@ class CompartmentalSystem:
     k5: DimerFormationRateCrown
     k6: MonomerDispersionRate
     fragmentation_rate: FragmentationRate
-    production_rate_dimers: float
+    rates: tuple[ConstantRate, ConstantRate, ConstantRate, DimerFormationRateCytoplasm, MigrationRateCytoplasmToPc,
+                 MigrationRatePcToNucleus, ComplexesFormationRate, DimerFormationRateCrown, MonomerDispersionRate,
+                 FragmentationRate]
 
     antioxidant: AntioxidantDose
     irradiation: IrradiationDose
@@ -37,22 +40,32 @@ class CompartmentalSystem:
     def __init__(self, time_space: TimeSpace):
         self.time_space = time_space
 
+    def __str__(self) -> str:
+        s = f"{'Compartment':>12}{'Actual value':>14}{'Next value':>12}\n"
+        for c in self.compartments:
+            s += str(c) + "\n"
+        s += f"{'Rate':>6}{'Actual value':>14}\n"
+        for r in self.rates:
+            s += str(r) + "\n"
+        return s
+
     def setup_initial_conditions(self, initial_dimers_cytoplasm: float, initial_monomers_cytoplasm: float,
                                  initial_monomers_crown: float, initial_monomers_nucleus: float, initial_apoe: float,
                                  initial_complexes: float, initial_dimers_crown: float):
-        self.dimers_cytoplasm = Compartment(initial_dimers_cytoplasm, self.time_space)
-        self.monomers_cytoplasm = Compartment(initial_monomers_cytoplasm, self.time_space)
-        self.monomers_crown = Compartment(initial_monomers_crown, self.time_space)
-        self.monomers_nucleus = Compartment(initial_monomers_nucleus, self.time_space)
-        self.apoe_proteins = Compartment(initial_apoe, self.time_space)
-        self.complexes = Compartment(initial_complexes, self.time_space)
-        self.dimers_crown = Compartment(initial_dimers_crown, self.time_space)
+        self.dimers_cytoplasm = Compartment("D_C", initial_dimers_cytoplasm, self.time_space)
+        self.monomers_cytoplasm = Compartment("M_C", initial_monomers_cytoplasm, self.time_space)
+        self.monomers_crown = Compartment("M_A", initial_monomers_crown, self.time_space)
+        self.monomers_nucleus = Compartment("M_N", initial_monomers_nucleus, self.time_space)
+        self.apoe_proteins = Compartment("A", initial_apoe, self.time_space)
+        self.complexes = Compartment("C_A", initial_complexes, self.time_space)
+        self.dimers_crown = Compartment("D_C", initial_dimers_crown, self.time_space)
         self.compartments = (self.dimers_cytoplasm, self.monomers_cytoplasm, self.monomers_crown, self.monomers_nucleus,
                              self.apoe_proteins, self.complexes, self.dimers_crown)
 
-    def setup_rates(self, production_rate_dimers: float, d0: float, d1: float, k1: DimerFormationRateCytoplasm,
-                    k2: MigrationRateCytoplasmToPc, k3: MigrationRatePcToNucleus, k4: ComplexesFormationRate,
-                    k5: DimerFormationRateCrown, k6: MonomerDispersionRate, s: FragmentationRate):
+    def setup_rates(self, production_rate_dimers: ConstantRate, d0: ConstantRate, d1: ConstantRate,
+                    k1: DimerFormationRateCytoplasm, k2: MigrationRateCytoplasmToPc, k3: MigrationRatePcToNucleus,
+                    k4: ComplexesFormationRate, k5: DimerFormationRateCrown, k6: MonomerDispersionRate,
+                    s: FragmentationRate):
         self.production_rate_dimers = production_rate_dimers
         self.degradation_rate_dimers = d0
         self.degradation_rate_monomers_nucleus = d1
@@ -63,6 +76,8 @@ class CompartmentalSystem:
         self.k5 = k5
         self.k6 = k6
         self.fragmentation_rate = s
+        self.rates = (self.production_rate_dimers, self.degradation_rate_dimers, self.degradation_rate_monomers_nucleus,
+                      self.k1, self.k2, self.k3, self.k4, self.k5, self.k6, self.fragmentation_rate)
 
     def setup_doses(self, antioxidant: AntioxidantDose, irradiation: IrradiationDose, statin: StatinDose):
         self.antioxidant = antioxidant
@@ -128,6 +143,7 @@ class CompartmentalSystem:
         dose_aox = self.antioxidant.get_dose(time, self.time_space)
         dose_irr = self.irradiation.get_dose(time, self.time_space)
         dose_statin = self.statin.get_dose(time, self.time_space)
+        print(dose_aox, dose_irr, dose_statin)
         self.k1.update(self.k1.compute_next_value(dose_aox))
         self.k2.update(self.k2.compute_next_value(dose_aox, self.dimers_crown.actual_value))
         self.k3.update(self.k3.compute_next_value(dose_aox, self.dimers_crown.actual_value, dose_statin))

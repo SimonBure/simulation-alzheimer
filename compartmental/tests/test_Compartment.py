@@ -1,15 +1,15 @@
 from spatial.oneD.OneDimSpace import TimeSpace
 from compartmental.Compartment import Compartment
-from compartmental.DynamicRate import DimerFormationRateCytoplasm
+from compartmental.Rate import DimerFormationRateCytoplasm
 
 
 def test_multiplication() -> bool:
     a_time_space = TimeSpace(1, 5)
 
-    a_compartment = Compartment(1.5, a_time_space)
-    another_compartment = Compartment(5, a_time_space)
+    a_compartment = Compartment("", 1.5, a_time_space)
+    another_compartment = Compartment("", 5, a_time_space)
 
-    a_rate = DimerFormationRateCytoplasm(1, 1)
+    a_rate = DimerFormationRateCytoplasm("", 1, 1)
     a_rate.actual_value = 5
 
     _ = a_compartment * another_compartment

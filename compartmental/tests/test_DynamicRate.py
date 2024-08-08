@@ -1,18 +1,18 @@
-from compartmental.DynamicRate import DimerFormationRateCytoplasm, MigrationRateCytoplasmToPc, MigrationRatePcToNucleus
+from compartmental.Rate import DimerFormationRateCytoplasm, MigrationRateCytoplasmToPc, MigrationRatePcToNucleus
 
 
 def test_all_kind_of_constructors() -> bool:
-    DimerFormationRateCytoplasm(1, 1)
-    MigrationRateCytoplasmToPc(1, 1, 1, 1)
-    MigrationRatePcToNucleus(1, 1, 1, 1, 1)
+    DimerFormationRateCytoplasm("", 1, 1)
+    MigrationRateCytoplasmToPc("", 1, 1, 1, 1)
+    MigrationRatePcToNucleus("", 1, 1, 1, 1, 1)
     return True
 
 
 def test_multiplication() -> bool:
-    a_rate = DimerFormationRateCytoplasm(1, 1)
+    a_rate = DimerFormationRateCytoplasm("", 1, 1)
     a_rate.actual_value = 4
 
-    another_rate = DimerFormationRateCytoplasm(1, 1)
+    another_rate = DimerFormationRateCytoplasm("", 1, 1)
     another_rate.actual_value = 5
 
     _ = 5 * a_rate
