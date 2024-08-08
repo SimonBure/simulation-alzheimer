@@ -58,7 +58,7 @@ class CompartmentalSystem:
         self.monomers_nucleus = Compartment("M_N", initial_monomers_nucleus, self.time_space)
         self.apoe_proteins = Compartment("A", initial_apoe, self.time_space)
         self.complexes = Compartment("C_A", initial_complexes, self.time_space)
-        self.dimers_crown = Compartment("D_C", initial_dimers_crown, self.time_space)
+        self.dimers_crown = Compartment("D_A", initial_dimers_crown, self.time_space)
         self.compartments = (self.dimers_cytoplasm, self.monomers_cytoplasm, self.monomers_crown, self.monomers_nucleus,
                              self.apoe_proteins, self.complexes, self.dimers_crown)
 
@@ -91,12 +91,12 @@ class CompartmentalSystem:
                 )
 
     def get_compartments_cytoplasm_and_nucleus_time_values(self) -> tuple[ndarray, ndarray, ndarray]:
-        return self.dimers_cytoplasm.time_values, self.monomers_cytoplasm.time_values, self.monomers_nucleus.time_values
+        return (self.dimers_cytoplasm.time_values[:-1], self.monomers_cytoplasm.time_values[:-1],
+                self.monomers_nucleus.time_values[:-1])
 
     def get_compartments_crown_time_values(self) -> tuple[ndarray, ndarray, ndarray, ndarray]:
-        return (self.monomers_crown.time_values, self.apoe_proteins.time_values, self.complexes.time_values,
-                self.dimers_crown.time_values
-                )
+        return (self.monomers_crown.time_values[:-1], self.apoe_proteins.time_values[:-1],
+                self.complexes.time_values[:-1], self.dimers_crown.time_values[:-1])
 
     def compute_next_value_dimers_cytoplasm(self) -> float:
         return (self.dimers_cytoplasm + self.time_space.step * (self.production_rate_dimers
@@ -107,7 +107,7 @@ class CompartmentalSystem:
 
     def compute_next_value_monomers_cytoplasm(self) -> float:
         return (self.monomers_cytoplasm + self.time_space.step * (- self.k1 * self.monomers_cytoplasm ** 2
-                                                                  - self.k2 * self.monomers_crown
+                                                                  - self.k2 * self.monomers_cytoplasm
                                                                   + self.k6 * self.monomers_crown
                                                                   + 2 * self.fragmentation_rate * self.dimers_cytoplasm)
                 )
@@ -132,18 +132,17 @@ class CompartmentalSystem:
                                                             + self.fragmentation_rate * self.complexes)
 
     def compute_next_value_complexes(self) -> float:
-        return self.complexes + self.time_space.step * (self.k4 * self.monomers_crown * self.apoe_proteins -
-                                                        self.fragmentation_rate * self.complexes)
+        return self.complexes + self.time_space.step * (self.k4 * self.monomers_crown * self.apoe_proteins
+                                                        - self.fragmentation_rate * self.complexes)
 
     def compute_next_value_dimers_crown(self) -> float:
-        return self.dimers_crown + self.time_space.step * (0.5 * self.k5 * self.monomers_crown ** 2 -
-                                                           self.fragmentation_rate * self.dimers_crown)
+        return self.dimers_crown + self.time_space.step * (0.5 * self.k5 * self.monomers_crown ** 2
+                                                           - self.fragmentation_rate * self.dimers_crown)
 
     def update_rates(self, time: float):
         dose_aox = self.antioxidant.get_dose(time, self.time_space)
         dose_irr = self.irradiation.get_dose(time, self.time_space)
         dose_statin = self.statin.get_dose(time, self.time_space)
-        print(dose_aox, dose_irr, dose_statin)
         self.k1.update(self.k1.compute_next_value(dose_aox))
         self.k2.update(self.k2.compute_next_value(dose_aox, self.dimers_crown.actual_value))
         self.k3.update(self.k3.compute_next_value(dose_aox, self.dimers_crown.actual_value, dose_statin))

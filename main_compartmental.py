@@ -1,10 +1,14 @@
 from compartmental.Simulation import Simulation
 
 if __name__ == "__main__":
-    duration_simulation = 24  # in hours
+    a_day_duration = 24  # in hours
+    a_day_and_a_half_duration = a_day_duration * 1.5  # in hours
+    a_month_duration = a_day_duration * 30
+    a_year_duration = a_day_duration * 365  # in hours
+    ten_years_duration = 10 * a_year_duration  # in hours
     time_step = 1 / 60  # in hours
 
-    a_sim = Simulation(duration_simulation, time_step)
+    a_sim = Simulation(a_day_and_a_half_duration, time_step)
 
     dimers_degradation = d0 = 0.05
     monomers_degradation_in_nucleus = d1 = 0.3
@@ -13,7 +17,7 @@ if __name__ == "__main__":
     coefs_migration_cytoplasm_to_crown = a2, b2, n2, e2 = 400, 0.4, 15, 20
     coefs_migration_crown_to_nucleus = a3, b3, n3, e3, f3 = 8, 0.5, 5, 0.5, 1
     coefs_complex_formation = a4, e4 = 0.0003, 20
-    coefs_dimer_formation_crown = a5, b5, n5, e5 = 0.00012, 1, 1, 20
+    coefs_dimer_formation_crown = a5, b5, n5, e5 = 0.05, 1, 1, 20
     e6 = 0.5
     coefs_fragmentation = cs, e0 = 0.0002, 20
 
@@ -27,7 +31,7 @@ if __name__ == "__main__":
 
     times_antioxidant = ()
     dose_antioxidant = 0.15
-    times_irradiation = ()
+    times_irradiation = ((10, 10.5), (20, 20.5))
     dose_irradiation = 15
     times_statin = ()
     dose_statin = 5
@@ -39,4 +43,4 @@ if __name__ == "__main__":
 
     a_sim.plot_all_compartments()
 
-    # TODO why compartments not changing ?
+    a_sim.plot_crown_formation_speed_along_time()
