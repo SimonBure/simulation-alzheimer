@@ -3,7 +3,7 @@ from spatial.oneD.OneDimSpace import TimeSpace
 
 
 class Experiment(abc.ABC):
-    time_experiments: tuple[tuple[float, float], ...]
+    time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]
 
     def __init__(self, *time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
         if time_experiments == ((), ) or time_experiments == ():
@@ -31,17 +31,17 @@ class Experiment(abc.ABC):
 
 # Shallow class for code clarity
 class Antioxidant(Experiment):
-    def __init__(self, *time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
+    def __init__(self, time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
         super().__init__(time_experiments)
 
 
 # Shallow class for code clarity
 class Irradiation(Experiment):
-    def __init__(self, *time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
+    def __init__(self, time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
         super().__init__(time_experiments)
 
 
 # Shallow class for code clarity
 class Statin(Experiment):
-    def __init__(self, *time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
+    def __init__(self, time_experiments: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
         super().__init__(time_experiments)
