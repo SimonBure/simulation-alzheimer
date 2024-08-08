@@ -103,12 +103,10 @@ class Simulation:
                                                        - self.compartmental_system.dimers_crown.actual_value)
 
     def plot_all_compartments(self):
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), constrained_layout=True)
 
         self.plot_compartments_cytoplasm_and_nucleus(ax1)
         self.plot_compartments_crown(ax2)
-
-        plt.subplots_adjust(wspace=0.5)  # setting horizontal space between the two plots
 
         plt.show()
 
@@ -140,8 +138,9 @@ class Simulation:
         for irr_starting_ending_times in self.experiments[1].time_experiments:
             ax.axvspan(irr_starting_ending_times[0], irr_starting_ending_times[1], color='red', alpha=0.3)
 
-        ax.axvspan(self.experiments[1].time_experiments[0][0], self.experiments[1].time_experiments[0][0], color='red',
-                   alpha=0.3, label="Irradiation")
+        if len(self.experiments[1].time_experiments) > 0:
+            ax.axvspan(self.experiments[1].time_experiments[0][0], self.experiments[1].time_experiments[0][0], color='red',
+                       alpha=0.3, label="Irradiation")
 
     @staticmethod
     def caption_plot(ax: plt.Axes):
@@ -176,10 +175,12 @@ class Simulation:
 
     def plot_crown_formation_speed_along_rate(self, rate_values_over_time: ndarray, rate_label: str):
         fig, ax = plt.subplots()
-        ax.plot(rate_values_over_time, self.crown_formation_speed, color='blue')
+        ax.plot(rate_values_over_time[:-1], self.crown_formation_speed[:-1], color='blue')
 
         ax.set_xlabel(rate_label + "($h^{-1}$)")
         self.label_crown_formation_speed_axis(ax)
+
+        plt.show()
 
     @staticmethod
     def label_crown_formation_speed_axis(ax: plt.Axes):
