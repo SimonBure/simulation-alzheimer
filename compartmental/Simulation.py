@@ -165,19 +165,10 @@ class Simulation:
 
     def plot_crown_formation_speed_along_time(self):
         fig, ax = plt.subplots()
-        ax.plot(self.time_space.space[:-1], self.crown_formation_speed[:-1], color='blue')
+        ax.plot(self.time_space.space[:-1], self.crown_formation_speed[:-1])
 
         plt.title("Evolution of crown formation speed along time")
         self.label_time_axis(ax)
-        self.label_crown_formation_speed_axis(ax)
-
-        plt.show()
-
-    def plot_crown_formation_speed_along_rate(self, rate_values_over_time: ndarray, rate_label: str):
-        fig, ax = plt.subplots()
-        ax.plot(rate_values_over_time[:-1], self.crown_formation_speed[:-1], color='blue')
-
-        ax.set_xlabel(rate_label + "($h^{-1}$)")
         self.label_crown_formation_speed_axis(ax)
 
         plt.show()

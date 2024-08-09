@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import ndarray
 from matplotlib import pyplot as plt
 
 
@@ -24,13 +25,13 @@ def compartmental_simulation(duration: float, time_step: float, initial_crown_co
     :return: first a dictionary containing the data arrays of all the 7 compartments and then a dict for the fixed point
     """
 
-    is_irradiation, antioxidant_using, statin_using, is_stress = experimental_conditions
+    times_irradiations, antioxidant_using, statin_using, is_stress = experimental_conditions
 
     # Coefficients definition
     lam = 15  # constant source of ATM dimers in cytoplasm
     d0 = 0.05  # rate of ATM dimers degradation
     d1 = 0.3  # rate of ATM monomers degradation in the nucleus
-    a1 = 0.01  # rate of ATM monomers re-dimerisation
+    a1 = 0.001  # rate of ATM monomers re-dimerisation
     e0 = e1 = e2 = e4 = e5 = 20  # inhibiting impact of the antioxidant
     e3 = e6 = 0.5  # promoting impact of the antioxidant
     f3 = 1  # impact of statin on nucleus permeability
@@ -38,26 +39,29 @@ def compartmental_simulation(duration: float, time_step: float, initial_crown_co
     k1, k2, k3, k4, k5, k6, g = 0, 0, 0, 0, 0, 0, 0
 
     migration_pc_coefficients = (400, 0.4, 15, e2)  # coefficients for the hill function k2
-    migration_nucleus_coefficients = (80, 0.5, 5, e3, f3)  # coefficients for the hill function k3
+    migration_nucleus_coefficients = (8, 0.5, 5, e3, f3)  # coefficients for the hill function k3
 
-    a4 = 0.05  # rate of ATM-ApoE complexes formation
-    complex_formation_coefficients = (0.4, 150, 15, e5)
+    a4 = 0.0003  # rate of ATM-ApoE complexes formation
+    complex_formation_coefficients = (0.05, 1, 1, e5)
 
-    cs = 0.002  # rate of protein dissociation during constant stress
+    cs = 0.0002  # rate of protein dissociation during constant stress
     stress_coefficients = (cs, e0)
 
-    cox = 1.5  # dose of antioxidant
+    cox = .15  # dose of antioxidant
     antioxidant_coefficients = (cox, 9, 3)  # parameters for the gaussian representation of the antioxidant effect
 
     sta = 5  # dose of statin
     statin_coefficients = (sta, 9, 4)
 
-    irradiation_coefficients = (0.8, 9, 2)  # parameters for the gaussian representation of the irradiation stress
+    fragmentation_irradiation = 15
+    irradiation_coefficients = (fragmentation_irradiation, times_irradiations)
 
     initial_compartments_values = compartments_values = dc, mc, ma, mn, a, ca, da = setup_initial_compartments_values(
         initial_crown_configuration)
 
     nb_loops_simulation = int(duration / time_step)
+
+    crown_formation_speed = np.zeros(nb_loops_simulation)
 
     # We need an extra slot because initial conditions are in the first slot of compartments_display_arrays
     compartments_display_arrays = setup_display_arrays(compartments_values, nb_loops_simulation)
@@ -74,7 +78,7 @@ def compartmental_simulation(duration: float, time_step: float, initial_crown_co
 
         drugs_doses = (antioxidant_dose, statin_dose)
 
-        stress_conditions = (is_stress, is_irradiation)
+        stress_conditions = is_stress
         coefficients_update_rates = (migration_pc_coefficients, migration_nucleus_coefficients,
                                      complex_formation_coefficients, (a1, e1, a4, e4, e6), stress_coefficients,
                                      irradiation_coefficients)
@@ -95,6 +99,7 @@ def compartmental_simulation(duration: float, time_step: float, initial_crown_co
         # TODO Refactor into a class of display arrays
         compartments_display_arrays = fill_display_arrays(compartments_display_arrays, display_array_index,
                                                           compartments_values)
+        crown_formation_speed[display_array_index] = ((0.5 * k5 * ma ** 2) - g * da)
 
         time_simulation += time_step
         display_array_index += 1
@@ -113,9 +118,9 @@ def compartmental_simulation(duration: float, time_step: float, initial_crown_co
     else:
         fixed_points_stress = None
 
-    get_existence_conditions(all_parameters_system)
+    # get_existence_conditions(all_parameters_system)
 
-    return time_array, compartments_display_arrays, fixed_points_stress, fixed_point_no_stress
+    return time_array, compartments_display_arrays, crown_formation_speed, fixed_points_stress, fixed_point_no_stress
 
 
 def setup_initial_compartments_values(initial_crown_configuration) -> tuple:
@@ -164,7 +169,7 @@ def is_initial_conditions_in_correct_format(initial_crown_configuration):
 def setup_display_arrays(initial_compartments_values, size_arrays) -> []:
     compartment_display_arrays = [0] * 7
     for (index, compartment) in enumerate(initial_compartments_values):
-        compartment_display_arrays[index] = np.full(size_arrays, compartment)
+        compartment_display_arrays[index] = np.full(size_arrays, compartment, dtype=np.float64)
 
     return compartment_display_arrays
 
@@ -172,7 +177,6 @@ def setup_display_arrays(initial_compartments_values, size_arrays) -> []:
 def fill_display_arrays(compartment_display_arrays, index, compartments_values):
     for i, compartment in enumerate(compartment_display_arrays):
         compartment[index] = compartments_values[i]
-
     return compartment_display_arrays
 
 
@@ -248,12 +252,11 @@ def compute_statin_time_dose(time: float, coefficients: tuple) -> float:
     return s_ta * np.exp(-(time - m_ta) ** 2 / (2 * sigma_ta ** 2))
 
 
-def update_system_rates(compartments_values: tuple, coefficients: tuple, drugs_doses: tuple, stress_conditions: tuple,
+def update_system_rates(compartments_values: tuple, coefficients: tuple, drugs_doses: tuple, is_stress: bool,
                         time_simulation: float) -> tuple:
     dc, mc, ma, mn, a, ca, da = compartments_values
 
     antioxidant_dose = drugs_doses[0]
-
     migration_pc_coefficients = coefficients[0]
     migration_nucleus_coefficients = coefficients[1]
     complex_formation_coefficients = coefficients[2]
@@ -271,8 +274,8 @@ def update_system_rates(compartments_values: tuple, coefficients: tuple, drugs_d
     k5 = compute_dimers_formation_rate(ca, complex_formation_coefficients, antioxidant_dose)
     k6 = e6 * antioxidant_dose  # dispersion caused by the antioxidant
 
-    parameters_stress_dosage = (stress_coefficients, irradiation_coefficients, antioxidant_dose, time_simulation)
-    g = dose_stress(stress_conditions, parameters_stress_dosage)
+    stress_dosage_parameters = (stress_coefficients, irradiation_coefficients, antioxidant_dose, time_simulation)
+    g = dose_stress(is_stress, stress_dosage_parameters)
 
     return k1, k2, k3, k4, k5, k6, g
 
@@ -333,41 +336,35 @@ def compute_dimers_formation_rate(concentration: float, coefficients: tuple, ant
     return dimers_formation_rate
 
 
-def dose_stress(stress_conditions, stress_dosage_parameters) -> float:
-    is_stress = stress_conditions[0]
-    is_irradiation = stress_conditions[1]
+def dose_stress(is_stress, stress_dosage_parameters) -> float:
     cs = stress_dosage_parameters[0][0]
     e0 = stress_dosage_parameters[0][1]
-    irradiation_coefficients = stress_dosage_parameters[1]
+    irradiation_parameters = stress_dosage_parameters[1]
+    fragmentation_irradiation = irradiation_parameters[0]
+    start_end_irradiation = irradiation_parameters[1]
     antioxidant_dose = stress_dosage_parameters[2]
     time_simulation = stress_dosage_parameters[3]
 
-    g = 0
     if is_stress:
-        g = cs / (1 + e0 * antioxidant_dose)
-        if is_irradiation:
-            g += compute_irradiation_time_stress(time_simulation, irradiation_coefficients)
+        g = cs / (1 + e0 * antioxidant_dose) + compute_irradiation_time_stress(time_simulation,
+                                                                               fragmentation_irradiation,
+                                                                               start_end_irradiation)
+    else:
+        g = 0
 
     return g
 
 
-def compute_irradiation_time_stress(time: float, coefficients: tuple) -> float:
-    """
-    Calculates the value of the irradiation stress using a gaussian function.
-    :param time: float giving the actual time of the simulation.
-    :param coefficients: tuple of 3 elements containing the coefficient of the Gaussian function. Must be in order a_s,
-        m_s, sigma_s.
-    :return: float representing the value of the irradiation induced stress.
-    """
-    a_s = coefficients[0]  # intensity of the irradiation
-    m_s = coefficients[1]  # time when the irradiation occurs
-    sigma_s = coefficients[2]  # rapidity of the irradiation effects
-
-    return a_s * np.exp(-(time - m_s) ** 2 / (2 * sigma_s ** 2))
+def compute_irradiation_time_stress(time: float, fragmentation_irradiation: float,
+                                    start_end_irradiation_times: tuple[float, float]) -> float:
+    for start_and_end in start_end_irradiation_times:
+        start_irradiation, end_irradiation = start_and_end
+        if start_irradiation < time < end_irradiation:
+            return fragmentation_irradiation
+    return 0.  # if no irradiation
 
 
-# TO-DO Refactor display system into a class ?
-def plot_compartment(simulation_results: tuple, download: bool = False):
+def plot_compartment(simulation_results: tuple, time_irradiations: list[tuple], download: bool = False):
     """
     Function of higher level to specify which compartment to plot, a specific title and whether to download the plot or
     not.
@@ -376,8 +373,8 @@ def plot_compartment(simulation_results: tuple, download: bool = False):
     """
     fig, (_, __) = plt.subplots(1, 2, figsize=(12, 5))
 
-    _ = plot_cyto_nucleus(simulation_results, _)
-    __ = plot_perinuclear_crown(simulation_results, __)
+    _ = plot_cyto_nucleus(simulation_results, time_irradiations, _)
+    __ = plot_perinuclear_crown(simulation_results, time_irradiations, __)
 
     plt.subplots_adjust(wspace=0.4)  # setting horizontal space between the two plots
 
@@ -388,7 +385,7 @@ def plot_compartment(simulation_results: tuple, download: bool = False):
 
 
 # TO-DO Update this function to be used with the new output of
-def plot_cyto_nucleus(simulation_results: tuple, ax):
+def plot_cyto_nucleus(simulation_results: tuple, time_irradiations, ax):
     """
     Function to plot the trajectories of the simulation in the cytoplasm and the nucleus.
     :param simulation_results: dict containing the results of the simulation.
@@ -405,12 +402,14 @@ def plot_cyto_nucleus(simulation_results: tuple, ax):
     ax.set_title("Populations evolution in the cytoplasm & nucleus")
     ax.set_xlabel('Time ($h$)', fontsize=12)
     ax.set_ylabel('Populations', fontsize=12)
+    for start_and_end in time_irradiations:
+        ax.axvspan(start_and_end[0], start_and_end[1], color='red', alpha=0.2, label='Irradiation')
     ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
 
     return ax
 
 
-def plot_perinuclear_crown(simulation_results, ax):
+def plot_perinuclear_crown(simulation_results, time_irradiations, ax):
     """
     Function to plot the trajectories of the simulation in the perinuclear crown.
     :param simulation_results: dict containing the results of the simulation.
@@ -428,9 +427,19 @@ def plot_perinuclear_crown(simulation_results, ax):
     ax.set_title("Populations evolution in the perinuclear crown")
     ax.set_xlabel('Time ($h$)', fontsize=12)
     ax.set_ylabel('Populations', fontsize=12)
+    for start_and_end in time_irradiations:
+        ax.axvspan(start_and_end[0], start_and_end[1], color='red', alpha=0.2, label='Irradiation')
     ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
 
     return ax
+
+
+def plot_speed_crown_formation(speed_crown_formation: ndarray, time_array: ndarray):
+    plt.plot(time_array, speed_crown_formation)
+    plt.title("Evolution of perinuclear crown formation speed")
+    plt.xlabel("Time ($h$)")
+    plt.ylabel("Crown formation speed ($h^{-1}$)")
+    plt.show()
 
 
 def compute_fixed_points_with_stress(system_parameters: tuple, initial_a0_ca0: tuple) -> tuple[dict, dict]:
@@ -518,35 +527,36 @@ if __name__ == "__main__":
     # k3_values = compute_migration_rate_to_nucleus(da_range, k3_parameters, some_drugs_doses)
     # plt.plot(da_range, k3_values)
 
-    is_irradiated = True
-    # is_irradiated = False
-    # antioxidant_dose_simulation = 'no'
+    # time_irradiations = []
+    time_irradiations = [(8, 8.33),]
+    antioxidant_dose_simulation = 'no'
     # antioxidant_dose_simulation = 'cst'
-    antioxidant_dose_simulation = 'var'
+    # antioxidant_dose_simulation = 'var'
     statin_dose_simulation = 'no'
     # statin_dose_simulation = 'cst'
     # statin_dose_simulation = 'var'
     # is_stress = True
     is_stress_simulation = True
-    some_experimental_conditions = (is_irradiated, antioxidant_dose_simulation, statin_dose_simulation,
+    some_experimental_conditions = (time_irradiations, antioxidant_dose_simulation, statin_dose_simulation,
                                     is_stress_simulation)
-    # np.random.random
+
     # initial_conditions = (150, 0, 0, 0, 0, 0, 0)
     initial_conditions = 'formed'
     # initial_conditions = 'not formed'
 
-    duration = 3000  # hours
+    duration = 36  # hours
+    # duration = 24 * 365 * 60  # hours
+    # duration = 24 * 365 * 1.5
 
-    a_time_array, some_compartments_results, eq_stress, eq_no_stress = compartmental_simulation(duration, 1 / 60,
-                                                                                                initial_conditions,
-                                                                                                some_experimental_conditions)
-    print(f"Example of the simulation results:\n{some_compartments_results}")
-    print(f"Equilibria when stress is considered:\n{eq_stress}")
-    print(f"Equilibrium without stress:\n{eq_no_stress}")
+    a_time_array, some_compartments_results, crown_speed_formation, eq_stress, eq_no_stress = compartmental_simulation(duration, 1 / 60, initial_conditions, some_experimental_conditions)
+    # print(f"Example of the simulation results:\n{some_compartments_results}")
+    # print(f"Equilibria when stress is considered:\n{eq_stress}")
+    # print(f"Equilibrium without stress:\n{eq_no_stress}")
     # print(f"Da: {test_simulation['Da']}")
     # print(f"Ma: {test_simulation['Ma']}")
     # print(f"Ca: {test_simulation['Ca']}")
     # print(f"A: {test_simulation['A']}")
 
     # Tests of the plotting process
-    plot_compartment((a_time_array, some_compartments_results), download=True)
+    plot_compartment((a_time_array, some_compartments_results), time_irradiations, download=False)
+    # plot_speed_crown_formation(crown_speed_formation, a_time_array)
