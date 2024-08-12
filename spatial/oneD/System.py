@@ -35,7 +35,7 @@ class ReactionDiffusionAtmApoeSystem:
 
     def setup_parameters(self, k: float, ka: float, diffusion: DiffusionParameter, transport: TransportParameter,
                          fragmentation: FragmentationParameter, permeability: PermeabilityParameter,
-                         ratio_fragmentation_dimers_complexes: float):
+                         ratio_fragmentation_dimers_complexes: float, transport_constant: float):
         self.k = k
         self.ka = ka
 
@@ -47,6 +47,7 @@ class ReactionDiffusionAtmApoeSystem:
         self.variable_parameters = [self.transport_parameter, self.fragmentation_parameter, self.diffusion_parameter,
                                     self.permeability_parameter]
         self.setup_parameters_values_over_time()
+        self.transport_parameter.setup_values_over_space(self.spatial_space, transport_constant)
 
         self.ratio_fragmentation_dimers_complexes = ratio_fragmentation_dimers_complexes
 
@@ -67,13 +68,14 @@ class ReactionDiffusionAtmApoeSystem:
                                                                                  self.time_space)
         self.permeability_parameter.impact_statin(statin, self.time_space)
 
-    def setup_initial_population_conditions(self, monomers_initial: ndarray, dimers_initial: ndarray,
-                                            apoe_initial: ndarray, complexes_initial: ndarray):
+    def setup_populations(self, monomers_initial: ndarray, dimers_initial: ndarray,
+                          apoe_initial: ndarray, complexes_initial: ndarray):
         self.monomers = AtmMonomers(monomers_initial)
         self.dimers = AtmDimers(dimers_initial)
         self.apoe_proteins = ApoeProteins(apoe_initial)
         self.complexes = ApoeAtmComplexes(complexes_initial)
         self.populations = [self.monomers, self.dimers, self.apoe_proteins, self.complexes]
+        self.setup_populations_every_time_values()
 
     def setup_populations_every_time_values(self):
         for pop in self.populations:
@@ -123,7 +125,7 @@ class ReactionDiffusionAtmApoeSystem:
     def set_next_values(self, monomers_next_values: ndarray, dimers_next_values: ndarray, apoe_next_values: ndarray,
                         complexes_next_values: ndarray):
         next_values = monomers_next_values, dimers_next_values, apoe_next_values, complexes_next_values
-        for next_val, pop in next_values, self.populations:
+        for next_val, pop in zip(next_values, self.populations):
             pop.set_next_values(next_val)
 
     def update_for_next_step(self):

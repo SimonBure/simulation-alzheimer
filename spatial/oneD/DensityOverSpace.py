@@ -17,7 +17,8 @@ class DensityOverSpace(abc.ABC):
         self.next_values = np.zeros(initial_state.shape)
 
     def setup_every_time_values(self, time_space: TimeSpace):
-        self.every_time_values = np.zeros((time_space.nb_points, self.actual_values.shape))
+        print(self.actual_values.shape[0])
+        self.every_time_values = np.zeros((time_space.nb_points, self.actual_values.shape[0]))
         self.every_time_values[0, :] = self.actual_values
 
     def set_next_values(self, next_values: ndarray):

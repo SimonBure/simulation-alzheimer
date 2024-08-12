@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy import ndarray
 import scipy.sparse as sparse
@@ -29,11 +30,10 @@ class Simulation1D:
         self.atm_apoe_system = ReactionDiffusionAtmApoeSystem()
         self.atm_apoe_system.setup_spaces(self.spatial_space, self.time_space)
 
-        self.experiments = ()
-
     def setup_atm_apoe_system(self, k: float, ka: float, diffusion_coefs: tuple[float, float],
                               transport_coefs: tuple[float, float], fragmentation_coefs: tuple[float, float, float],
-                              permeability_coefs: tuple[float, float, float], ratio_fragm_dimer_complexes: float):
+                              permeability_coefs: tuple[float, float, float], ratio_fragm_dimer_complexes: float,
+                              transport_space_constant: float):
         diffusion_param = DiffusionParameter(diffusion_coefs[0], diffusion_coefs[1])
         transport_param = TransportParameter(transport_coefs[0], transport_coefs[1])
         fragmentation_param = FragmentationParameter(fragmentation_coefs[0], fragmentation_coefs[1],
@@ -41,7 +41,7 @@ class Simulation1D:
         permeability_param = PermeabilityParameter(permeability_coefs[0], permeability_coefs[1], permeability_coefs[2])
 
         self.atm_apoe_system.setup_parameters(k, ka, diffusion_param, transport_param, fragmentation_param,
-                                              permeability_param, ratio_fragm_dimer_complexes)
+                                              permeability_param, ratio_fragm_dimer_complexes, transport_space_constant)
 
     def setup_experimental_conditions(self, antioxidant_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...],
                                       irradiation_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...],
@@ -54,8 +54,8 @@ class Simulation1D:
 
     def setup_system_initial_conditions(self, monomers_initial: ndarray, dimers_initial: ndarray,
                                         apoe_initial: ndarray, complexes_initial: ndarray):
-        self.atm_apoe_system.setup_initial_population_conditions(monomers_initial, dimers_initial, apoe_initial,
-                                                                 complexes_initial)
+        self.atm_apoe_system.setup_populations(monomers_initial, dimers_initial, apoe_initial,
+                                               complexes_initial)
 
     def create_all_solvers(self) -> tuple[factorized, factorized, factorized, factorized]:
         solver_natural = self.create_natural_system_solver()
@@ -201,3 +201,16 @@ class Simulation1D:
 
     def is_migration_inside_nucleus_possible(self) -> bool:
         return self.compute_nucleus_permeability() > 0
+
+    def plot_atm_dimers_over_space(self):
+        fig, ax = plt.subplots()
+
+        ax.plot(self.spatial_space.space, self.atm_apoe_system.dimers.actual_values)
+
+    @staticmethod
+    def label_x_space_axis(ax: plt.Axes):
+        ax.set_xlabel("Space")
+
+    @staticmethod
+    def label_y_atm_dimers_density(ax: plt.Axes):
+        ax.set_ylabel("ATM dimers density")

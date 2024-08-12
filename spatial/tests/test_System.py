@@ -15,8 +15,8 @@ def test_compute_dimers_next_density() -> bool:
     a_apoe_initial_state = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
     a_complexes_initial_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
-    a_system.setup_initial_population_conditions(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
-                                                 a_complexes_initial_state)
+    a_system.setup_populations(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
+                               a_complexes_initial_state)
     a_k = 0.5
     a_ka = 0.6
     a_diffusion = DiffusionParameter(1.1, 1.5)
@@ -48,8 +48,8 @@ def test_compute_apoe_next_density() -> bool:
     a_apoe_initial_state = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
     a_complexes_initial_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
-    a_system.setup_initial_population_conditions(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
-                                                 a_complexes_initial_state)
+    a_system.setup_populations(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
+                               a_complexes_initial_state)
     a_k = 0.5
     a_ka = 0.6
     a_diffusion = DiffusionParameter(1.1, 1.5)
@@ -82,8 +82,8 @@ def test_compute_complexes_next_density() -> bool:
     a_apoe_initial_state = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
     a_complexes_initial_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
-    a_system.setup_initial_population_conditions(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
-                                                 a_complexes_initial_state)
+    a_system.setup_populations(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
+                               a_complexes_initial_state)
     a_k = 0.5
     a_ka = 0.6
     a_diffusion = DiffusionParameter(1.1, 1.5)
@@ -116,8 +116,8 @@ def test_compute_bulk_over_nucleus() -> bool:
     a_apoe_initial_state = np.array([5.0, 0.0, 0.0, 0.0, 0.0])
     a_complexes_initial_state = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
-    a_system.setup_initial_population_conditions(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
-                                                 a_complexes_initial_state)
+    a_system.setup_populations(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
+                               a_complexes_initial_state)
 
     actual_bulk = a_system.compute_bulk_over_nucleus()
     expected_bulk = 22.62
