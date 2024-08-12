@@ -29,12 +29,12 @@ if __name__ == "__main__":
                                      coefs_dimer_formation_crown, e6, coefs_fragmentation,
                                      initial_compartments_crown_formed)
 
-    times_antioxidant = ()
+    times_antioxidant = (0, a_day_and_a_half_duration)
     dose_antioxidant = 0.15
     times_irradiation = (10, 10.5)
     dose_irradiation = 15
-    times_statin = ()
-    dose_statin = 5
+    times_statin = (0, a_day_and_a_half_duration)
+    dose_statin = 2
 
     a_sim.setup_experimental_conditions(times_antioxidant, dose_antioxidant, times_irradiation, dose_irradiation,
                                         times_statin, dose_statin)
