@@ -13,6 +13,21 @@ class Experiment(abc.ABC):
         else:
             self.time_experiments = time_experiments[0]
 
+    def get_starting_times(self) -> list[float]:
+        starting_times = []
+        for t_exp in self.time_experiments:
+            starting_times.append(t_exp[0])
+        return starting_times
+
+    def get_ending_times(self) -> list[float]:
+        ending_times = []
+        for t_exp in self.time_experiments:
+            ending_times.append(t_exp[1])
+        return ending_times
+
+    def get_starting_and_ending_times(self) -> tuple[list[float], list[float]]:
+        return self.get_starting_times(), self.get_ending_times()
+
     def get_indexes_starting_times(self, time_space: TimeSpace) -> list[int]:
         starting_times = []
         for t_exp in self.time_experiments:

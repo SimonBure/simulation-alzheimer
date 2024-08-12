@@ -44,7 +44,7 @@ class ReactionDiffusionAtmApoeSystem:
         self.fragmentation_parameter = fragmentation
         self.permeability_parameter = permeability
 
-        self.variable_parameters = [self.diffusion_parameter, self.transport_parameter, self.fragmentation_parameter,
+        self.variable_parameters = [self.transport_parameter, self.fragmentation_parameter, self.diffusion_parameter,
                                     self.permeability_parameter]
         self.setup_parameters_values_over_time()
 
@@ -56,9 +56,10 @@ class ReactionDiffusionAtmApoeSystem:
 
     def setup_experiments_impact_on_parameters(self, antioxidant: Antioxidant, irradiation: Irradiation,
                                                statin: Statin):
+        # Don't go through the permeability parameter
         for parameter in self.variable_parameters[:-1]:
             parameter.impact_antioxidant(antioxidant, self.time_space)
-
+        # Don't go through the permeability parameter and the diffusion parameter
         for parameter in self.variable_parameters[:-2]:
             parameter.impact_irradiation(irradiation, self.time_space)
 

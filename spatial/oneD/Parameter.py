@@ -65,8 +65,6 @@ class FragmentationParameter(TransportParameter, DiffusionParameter):
                                                     time_space: TimeSpace):
         aox_start_times, aox_end_times = antioxidant.get_indexes_starting_and_ending_times(time_space)
         irr_start_times, irr_end_times = irradiation.get_indexes_starting_and_ending_times(time_space)
-        # TODO test if aox and irr times are crossing with the lists of several starts and ending times
-        # TODO find where the aox and irr are crossing to update the fragmentation parameter accordingly
         for aox_start, aox_end in zip(aox_start_times, aox_end_times):
             for irr_start, irr_end in zip(irr_start_times, irr_end_times):
                 if irr_start <= aox_start < aox_end <= irr_end:

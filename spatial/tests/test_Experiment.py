@@ -55,9 +55,17 @@ def test_get_indexes_ending_time() -> bool:
     return actual_ending_times == expected_ending_times
 
 
+def test_get_starting_times() -> bool:
+    returned_bool = Experiment().get_starting_times() == []
+    returned_bool = returned_bool and Experiment((5, 9)).get_starting_times() == [5]
+    returned_bool = returned_bool and Experiment((5, 9), (37, 44)).get_starting_times() == [5, 37]
+    return returned_bool
+
+
 if __name__ == "__main__":
     assert test_all_constructor()
     assert test_get_index_starting_time()
     assert test_get_indexes_times_empty_experiment()
     assert test_get_indexes_starting_time()
     assert test_get_indexes_ending_time()
+    assert test_get_starting_times()

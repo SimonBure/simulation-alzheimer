@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import ndarray
-from typing import Optional
 import scipy.sparse as sparse
 from scipy.sparse.linalg import factorized
 from spatial.oneD.OneDimSpace import SpatialSpace, TimeSpace
@@ -44,12 +43,12 @@ class Simulation1D:
         self.atm_apoe_system.setup_parameters(k, ka, diffusion_param, transport_param, fragmentation_param,
                                               permeability_param, ratio_fragm_dimer_complexes)
 
-    def setup_experimental_conditions(self, antioxidant_start_and_ending_time: tuple[float, float],
-                                      irradiation_start_and_ending_time: tuple[float, float],
-                                      statin_start_and_ending_time: tuple[float, float]):
-        antioxidant = Antioxidant(antioxidant_start_and_ending_time[0], antioxidant_start_and_ending_time[1])
-        irradiation = Irradiation(irradiation_start_and_ending_time[0], irradiation_start_and_ending_time[1])
-        statin = Statin(statin_start_and_ending_time[0], statin_start_and_ending_time[1])
+    def setup_experimental_conditions(self, antioxidant_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...],
+                                      irradiation_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...],
+                                      statin_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
+        antioxidant = Antioxidant(antioxidant_start_and_ending_time)
+        irradiation = Irradiation(irradiation_start_and_ending_time)
+        statin = Statin(statin_start_and_ending_time)
         self.experiments = antioxidant, irradiation, statin
         self.atm_apoe_system.setup_experiments_impact_on_parameters(antioxidant, irradiation, statin)
 
@@ -154,6 +153,7 @@ class Simulation1D:
     def simulate(self):
         (solver_natural, solver_during_antioxidant, solver_during_irradiation,
          solver_during_antioxidant_and_irradiation) = self.create_all_solvers()
+
         while self.time < self.time_space.end:
             dimers_next_density = self.atm_apoe_system.compute_dimers_next_density(self.time_index)
             apoe_next_density = self.atm_apoe_system.compute_apoe_next_density(self.time_index)
@@ -184,13 +184,20 @@ class Simulation1D:
             self.time += self.time_space.step
 
     def is_antioxidant_now(self) -> bool:
-        return self.experiments[0].start_time <= self.time <= self.experiments[0].end_time
+        return self.is_experiment_now(0)
 
     def is_irradiation_now(self) -> bool:
-        return self.experiments[1].start_time <= self.time <= self.experiments[1].end_time
+        return self.is_experiment_now(1)
 
     def is_statin_now(self) -> bool:
-        return self.experiments[2].start_time <= self.time <= self.experiments[2].end_time
+        return self.is_experiment_now(2)
+
+    def is_experiment_now(self, index_experiment: int) -> bool:
+        starts, ends = self.experiments[index_experiment].get_starting_and_ending_times()
+        for s, e in zip(starts, ends):
+            if s < self.time < e:
+                return True
+        return False
 
     def is_migration_inside_nucleus_possible(self) -> bool:
         return self.compute_nucleus_permeability() > 0

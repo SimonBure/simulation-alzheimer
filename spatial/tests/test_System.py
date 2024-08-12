@@ -130,4 +130,3 @@ if __name__ == "__main__":
     assert test_compute_apoe_next_density()
     assert test_compute_complexes_next_density()
     assert test_compute_bulk_over_nucleus()
-    # TODO test create_monomers_reaction_array

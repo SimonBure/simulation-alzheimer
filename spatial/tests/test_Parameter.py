@@ -24,7 +24,7 @@ def test_impacts_two_antioxidant_on_diffusion_parameter() -> bool:
     a_diffusion_parameter = DiffusionParameter(1.5, 1.8)
     a_diffusion_parameter.setup_values_over_time(a_time_space)
 
-    an_antioxidant_experiment = Antioxidant((0., 0.31), (0.81, 1.))
+    an_antioxidant_experiment = Antioxidant(((0., 0.31), (0.81, 1.)))
     a_diffusion_parameter.impact_antioxidant(an_antioxidant_experiment, a_time_space)
 
     expected_over_time_values = np.array([1.8, 1.8, 1.8, 1.8, 1.5, 1.5, 1.5, 1.5, 1.8, 1.8, 1.8])
@@ -94,7 +94,7 @@ def test_impact_empty_experiment_on_parameter() -> bool:
     a_time_space = TimeSpace(1, 5)
     a_parameter = DiffusionParameter(1.5, 2.8)
     a_parameter.setup_values_over_time(a_time_space)
-    not_an_experiment = Antioxidant()
+    not_an_experiment = Antioxidant(())
     a_parameter.impact_antioxidant(not_an_experiment, a_time_space)
     expected_over_time_values = np.array([1.5, 1.5, 1.5, 1.5, 1.5])
 
@@ -107,8 +107,8 @@ def test_impact_empty_experiments_on_fragmentation_parameter() -> bool:
     a_fragmentation_parameter = FragmentationParameter(1., 2., 5.0)
     a_fragmentation_parameter.setup_values_over_time(a_time_space)
 
-    not_an_aox_exp = Antioxidant()
-    not_an_irr_exp = Irradiation()
+    not_an_aox_exp = Antioxidant(())
+    not_an_irr_exp = Irradiation(())
 
     a_fragmentation_parameter.impact_antioxidant(not_an_aox_exp, a_time_space)
     a_fragmentation_parameter.impact_irradiation(not_an_irr_exp, a_time_space)
