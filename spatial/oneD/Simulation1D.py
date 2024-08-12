@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.animation as anim
 import numpy as np
 from numpy import ndarray
 import scipy.sparse as sparse
@@ -45,6 +46,11 @@ class Simulation1D:
         self.atm_apoe_system.setup_parameters(k, ka, diffusion_param, transport_param, fragmentation_param,
                                               permeability_param, ratio_fragm_dimer_complexes, transport_space_constant)
 
+    def setup_system_initial_conditions(self, monomers_initial: ndarray, dimers_initial: ndarray,
+                                        apoe_initial: ndarray, complexes_initial: ndarray):
+        self.atm_apoe_system.setup_populations(monomers_initial, dimers_initial, apoe_initial,
+                                               complexes_initial)
+
     def setup_experimental_conditions(self, antioxidant_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...],
                                       irradiation_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...],
                                       statin_start_and_ending_time: tuple | tuple[float, float] | tuple[tuple[float, float], ...]):
@@ -53,11 +59,6 @@ class Simulation1D:
         statin = Statin(statin_start_and_ending_time)
         self.experiments = antioxidant, irradiation, statin
         self.atm_apoe_system.setup_experiments_impact_on_parameters(antioxidant, irradiation, statin)
-
-    def setup_system_initial_conditions(self, monomers_initial: ndarray, dimers_initial: ndarray,
-                                        apoe_initial: ndarray, complexes_initial: ndarray):
-        self.atm_apoe_system.setup_populations(monomers_initial, dimers_initial, apoe_initial,
-                                               complexes_initial)
 
     def create_all_solvers(self) -> tuple[factorized, factorized, factorized, factorized]:
         solver_natural = self.create_natural_system_solver()
@@ -207,7 +208,10 @@ class Simulation1D:
     def plot_atm_dimers_over_space(self):
         fig, ax = plt.subplots()
 
-        ax.plot(self.spatial_space.space, self.atm_apoe_system.dimers.actual_values)
+        ax.plot(self.spatial_space.space, self.atm_apoe_system.get_dimers(), color='crimson')
+
+        self.label_x_space_axis(ax)
+        self.label_y_atm_dimers_density(ax)
 
     @staticmethod
     def label_x_space_axis(ax: plt.Axes):
@@ -216,3 +220,10 @@ class Simulation1D:
     @staticmethod
     def label_y_atm_dimers_density(ax: plt.Axes):
         ax.set_ylabel("ATM dimers density")
+
+    def plot_atm_dimers_over_space_and_time(self):
+        fig, ax = plt.subplots()
+        plot = ax.plot(self.spatial_space.space, self.atm_apoe_system.get_dimers(), color='crimson')
+
+    def animate(self, frame: int):
+        pass

@@ -81,6 +81,21 @@ class ReactionDiffusionAtmApoeSystem:
         for pop in self.populations:
             pop.setup_every_time_values(self.time_space)
 
+    def get_dimers(self) -> ndarray:
+        return self.dimers.actual_values
+
+    def get_monomers(self) -> ndarray:
+        return self.monomers.actual_values
+
+    def get_apoe(self) -> ndarray:
+        return self.apoe_proteins.actual_values
+
+    def get_complexes(self) -> ndarray:
+        return self.complexes.actual_values
+
+    def get_perinuclear_crown(self) -> float:
+        return float(self.dimers.actual_values[0])
+
     def compute_dimers_next_density(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate_dimers = (self.ratio_fragmentation_dimers_complexes
                                      * self.fragmentation_parameter.over_time_values[time_simulation_index])
