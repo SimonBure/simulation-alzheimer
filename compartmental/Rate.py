@@ -158,8 +158,8 @@ class MigrationRatePcToNucleus(AntioxidantStatinCompartmentDependingRate):
         self.f = f
 
     def compute_next_value(self, antioxidant: float, compartment: float, statin: float) -> float:
-        return (self.b * self.a ** self.n) / ((self.a ** self.n + compartment ** self.n) * (1 + self.e * antioxidant) *
-                                              (1 + self.f * statin))
+        return (((self.b * self.a ** self.n) / (self.a ** self.n + compartment ** self.n)) * (1 + self.e * antioxidant)
+                * (1 + self.f * statin))
 
 
 class FragmentationRate(AntioxidantDependingRate):
