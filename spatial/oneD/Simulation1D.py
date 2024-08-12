@@ -20,11 +20,13 @@ class Simulation1D:
 
     experiments: tuple[Antioxidant, Irradiation, Statin]
 
-    def __init__(self, space_length: float, nb_space_points: int, maximum_time: float, nb_time_points: int):
+    def __init__(self, space_length: float, nb_space_points: int, maximum_time: float, time_step: float):
         self.time = 0.
         self.time_index = 0
 
         self.spatial_space = SpatialSpace(space_length, nb_space_points)
+
+        nb_time_points = int(maximum_time / time_step)
         self.time_space = TimeSpace(maximum_time, nb_time_points)
 
         self.atm_apoe_system = ReactionDiffusionAtmApoeSystem()

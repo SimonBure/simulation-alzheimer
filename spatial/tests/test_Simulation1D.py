@@ -4,14 +4,14 @@ from spatial.oneD.Simulation1D import Simulation1D
 
 
 def test_setup_atm_apoe_system() -> bool:
-    a_sim = Simulation1D(1, 5, 1, 5)
+    a_sim = Simulation1D(1, 5, 1, 0.05)
     a_sim.setup_atm_apoe_system(1, 1, (1, 1), (1, 1), (1, 1, 1), (1, 1, 1), 1.2, 1)
 
     return True
 
 
 def test_setup_experimental_conditions() -> bool:
-    a_sim = Simulation1D(1, 5, 1, 5)
+    a_sim = Simulation1D(1, 5, 1, 0.05)
     a_sim.setup_atm_apoe_system(1, 1, (1, 1), (1, 1), (1, 1, 1), (1, 1, 1), 1.2, 1)
     a_sim.setup_experimental_conditions((), (), ())
     a_sim.setup_experimental_conditions((0, 1), (5, 6), (8, 9))
@@ -20,7 +20,7 @@ def test_setup_experimental_conditions() -> bool:
 
 
 def test_is_experiment_now() -> bool:
-    a_sim = Simulation1D(1, 5, 1, 5)
+    a_sim = Simulation1D(1, 5, 1, 0.05)
     a_sim.setup_atm_apoe_system(1, 1, (1, 1), (1, 1), (1, 1, 1), (1, 1, 1), 1.2, 1)
     a_sim.setup_experimental_conditions((0.3, 1), (0.8, 1), (0.4, 0.6))
     a_sim.time = 0.5
@@ -30,7 +30,7 @@ def test_is_experiment_now() -> bool:
 
 
 def test_simulate() -> bool:
-    a_sim = Simulation1D(1, 5, 1, 5)
+    a_sim = Simulation1D(1, 5, 1, 0.05)
     a_sim.setup_atm_apoe_system(1, 1, (1, 1), (1, 1), (1, 1, 1), (1, 1, 1), 1.2, 1)
     a_sim.setup_experimental_conditions((0.3, 1), (0.8, 1), (0.4, 0.6))
     a_sim.setup_system_initial_conditions(np.ones(5), np.zeros(5), np.zeros(5), np.zeros(5))
