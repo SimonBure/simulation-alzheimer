@@ -119,7 +119,7 @@ def test_compute_bulk_over_nucleus() -> bool:
     a_system.setup_populations(a_monomers_initial_state, a_dimers_initial_state, a_apoe_initial_state,
                                a_complexes_initial_state)
 
-    actual_bulk = a_system.compute_bulk_over_nucleus()
+    actual_bulk = a_system.compute_perinuclear_crown()
     expected_bulk = 22.62
 
     return actual_bulk == expected_bulk

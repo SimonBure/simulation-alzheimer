@@ -93,9 +93,6 @@ class ReactionDiffusionAtmApoeSystem:
     def get_complexes(self) -> ndarray:
         return self.complexes.actual_values
 
-    def get_perinuclear_crown(self) -> float:
-        return float(self.dimers.actual_values[0])
-
     def compute_dimers_next_density(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate_dimers = (self.ratio_fragmentation_dimers_complexes
                                      * self.fragmentation_parameter.over_time_values[time_simulation_index])
@@ -117,7 +114,7 @@ class ReactionDiffusionAtmApoeSystem:
                                                                        - fragmentation_rate_complexes
                                                                        * self.complexes.actual_values))
 
-    def compute_bulk_over_nucleus(self) -> float:
+    def compute_perinuclear_crown(self) -> float:
         protein_bulk = float(3.66 * self.monomers.actual_values[0] + 6.98 * self.dimers.actual_values[0]
                              + self.apoe_proteins.actual_values[0] + 4.66 * self.complexes.actual_values[0])
         return protein_bulk
