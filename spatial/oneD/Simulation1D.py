@@ -326,16 +326,16 @@ class Simulation1D:
 
     def plot_atm_dimers_over_space_and_time(self):
         fig, ax = plt.subplots()
-        plot = ax.plot(self.spatial_space.space, self.atm_apoe_system.get_dimers(), color='crimson')
+        plot, = ax.plot(self.spatial_space.space, self.atm_apoe_system.dimers.every_time_values[0], color='crimson')
+        ax.set_ylim(0, self.atm_apoe_system.dimers.every_time_values[-1].max() + 1)
 
-        animation = anim.FuncAnimation(fig, partial(self.animate, plot), frames=self.time_space.nb_points, blit=True,
-                                       interval=50)
+        def animate(frame):
+            plot.set_ydata(self.atm_apoe_system.dimers.every_time_values[frame])
+            return plot,
 
-        plt.show()
+        animation = anim.FuncAnimation(fig, animate, frames=self.time_space.nb_points, blit=True, interval=50)
 
-    def animate(self, frame: int, plot: plt.Axes.plot):
-        plot.set_ydata(self.atm_apoe_system.dimers.every_time_values[frame])
-        return plot,
+        return animation
 
     def plot_system_mass_over_time(self):
         fig, ax = plt.subplots()
