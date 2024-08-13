@@ -150,7 +150,7 @@ class ReactionDiffusionAtmApoeSystem:
                       + 2 * ratio_masses * np.mean(self.dimers.actual_values)
                       + np.mean(self.apoe_proteins.actual_values)
                       + (1 + ratio_masses) * np.mean(self.complexes.actual_values)
-                      )
+                      ) * self.spatial_space.end
         return total_mass
 
     def set_next_values(self, monomers_next_values: ndarray, dimers_next_values: ndarray, apoe_next_values: ndarray,
