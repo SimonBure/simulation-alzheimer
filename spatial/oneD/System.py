@@ -142,6 +142,17 @@ class ReactionDiffusionAtmApoeSystem:
 
         return reaction_array
 
+    def compute_system_mass(self) -> float:
+        mass_atm = 350  # kDa
+        mass_apoe = 34  # kDa
+        ratio_masses = mass_atm / mass_apoe
+        total_mass = (ratio_masses * np.mean(self.monomers.actual_values)
+                      + 2 * ratio_masses * np.mean(self.dimers.actual_values)
+                      + np.mean(self.apoe_proteins.actual_values)
+                      + (1 + ratio_masses) * np.mean(self.complexes.actual_values)
+                      )
+        return total_mass
+
     def set_next_values(self, monomers_next_values: ndarray, dimers_next_values: ndarray, apoe_next_values: ndarray,
                         complexes_next_values: ndarray):
         next_values = monomers_next_values, dimers_next_values, apoe_next_values, complexes_next_values

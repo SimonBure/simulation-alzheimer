@@ -21,6 +21,7 @@ class Simulation1D:
 
     atm_apoe_system: ReactionDiffusionAtmApoeSystem
     crown_density_over_time: ndarray
+    total_mass: ndarray
 
     experiments: tuple[Antioxidant, Irradiation, Statin]
 
@@ -34,6 +35,7 @@ class Simulation1D:
         self.time_space = TimeSpace(maximum_time, nb_time_points)
 
         self.crown_density_over_time = np.zeros(nb_time_points)
+        self.total_mass = np.zeros(nb_time_points)
 
         self.atm_apoe_system = ReactionDiffusionAtmApoeSystem()
         self.atm_apoe_system.setup_spaces(self.spatial_space, self.time_space)
@@ -96,6 +98,7 @@ class Simulation1D:
             self.atm_apoe_system.update_for_next_step()
 
             self.fill_crown_density(self.time_index)
+            self.fill_total_mass(self.time_index)
 
             self.time_index += 1
             self.time += self.time_space.step
@@ -215,6 +218,9 @@ class Simulation1D:
     def fill_crown_density(self, time_index: int):
         self.crown_density_over_time[time_index] = self.atm_apoe_system.compute_perinuclear_crown()
 
+    def fill_total_mass(self, time_index: int):
+        self.total_mass[time_index] = self.atm_apoe_system.compute_system_mass()
+
     def plot_all_densities(self):
         fig, ax = plt.subplots()
 
@@ -330,3 +336,11 @@ class Simulation1D:
     def animate(self, frame: int, plot: plt.Axes.plot):
         plot.set_ydata(self.atm_apoe_system.dimers.every_time_values[frame])
         return plot,
+
+    def plot_system_mass_over_time(self):
+        fig, ax = plt.subplots()
+
+        ax.plot(self.time_space.space, self.total_mass)
+
+        self.label_x_time_axis(ax)
+        ax.set_ylabel("Total mass in the cell (kDa)")
