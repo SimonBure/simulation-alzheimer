@@ -19,7 +19,7 @@ class Simulation1D:
     time_space: TimeSpace
 
     atm_apoe_system: ReactionDiffusionAtmApoeSystem
-    crown_density_over_time = ndarray
+    crown_density_over_time: ndarray
 
     experiments: tuple[Antioxidant, Irradiation, Statin]
 
@@ -93,6 +93,8 @@ class Simulation1D:
                                                  complexes_next_density)
             self.atm_apoe_system.fill_every_time_values(self.time_index)
             self.atm_apoe_system.update_for_next_step()
+
+            self.fill_crown_density(self.time_index)
 
             self.time_index += 1
             self.time += self.time_space.step
@@ -169,7 +171,7 @@ class Simulation1D:
 
     def compute_nucleus_permeability(self) -> float:
         if self.is_simulation_started():
-            bulk_on_nucleus = self.atm_apoe_system.compute_perinuclear_crown()
+            bulk_on_nucleus = self.atm_apoe_system.compute_bulk_on_nucleus()
             return self.atm_apoe_system.permeability_parameter.get_permeability_depending_on_bulk(bulk_on_nucleus,
                                                                                                   self.time_index)
         else:
@@ -209,6 +211,9 @@ class Simulation1D:
     def is_migration_inside_nucleus_possible(self) -> bool:
         return self.compute_nucleus_permeability() > 0
 
+    def fill_crown_density(self, time_index: int):
+        self.crown_density_over_time[time_index] = self.atm_apoe_system.compute_perinuclear_crown()
+
     def plot_all_densities(self):
         fig, ax = plt.subplots()
 
@@ -218,7 +223,7 @@ class Simulation1D:
         self.plot_complexes_density_over_space(ax)
 
         self.label_x_space_axis(ax)
-        ax.set_ylabel("Densities")
+        ax.set_ylabel("Densities", fontsize=12)
 
         ax.legend(loc='upper left', bbox_to_anchor=(1, 1), fontsize=12)
 
@@ -239,7 +244,7 @@ class Simulation1D:
 
     @staticmethod
     def label_y_atm_dimers_density(ax: plt.Axes):
-        ax.set_ylabel("ATM dimers density")
+        ax.set_ylabel("ATM dimers density", fontsize=12)
         ax.set_ylim([0, None])
 
     def plot_monomers_over_space(self):
@@ -257,7 +262,7 @@ class Simulation1D:
 
     @staticmethod
     def label_y_monomers_density(ax: plt.Axes):
-        ax.set_ylabel("ATM monomers density")
+        ax.set_ylabel("ATM monomers density", fontsize=12)
 
     def plot_complexes_over_space(self):
         fig, ax = plt.subplots()
@@ -274,7 +279,7 @@ class Simulation1D:
 
     @staticmethod
     def label_y_complexes_density(ax: plt.Axes):
-        ax.set_ylabel("ApoE-ATM Complexes density")
+        ax.set_ylabel("ApoE-ATM Complexes density", fontsize=12)
 
     def plot_apoe_over_space(self):
         fig, ax = plt.subplots()
@@ -291,11 +296,26 @@ class Simulation1D:
 
     @staticmethod
     def label_y_apoe_density(ax: plt.Axes):
-        ax.set_ylabel("ApoE protein density")
+        ax.set_ylabel("ApoE protein density", fontsize=12)
 
     @staticmethod
     def label_x_space_axis(ax: plt.Axes):
-        ax.set_xlabel("Space")
+        ax.set_xlabel("Space", fontsize=12)
+
+    def plot_crown_density_over_time(self):
+        fig, ax = plt.subplots()
+
+        ax.plot(self.time_space.space[:-1], self.crown_density_over_time[:-1], color='red')
+
+        self.label_x_time_axis(ax)
+
+        ax.set_ylabel("Perinuclear crown density", fontsize=12)
+
+        plt.show()
+
+    @staticmethod
+    def label_x_time_axis(ax: plt.Axes):
+        ax.set_xlabel("Time", fontsize=12)
 
     def plot_atm_dimers_over_space_and_time(self):
         fig, ax = plt.subplots()

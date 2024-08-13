@@ -115,9 +115,16 @@ class ReactionDiffusionAtmApoeSystem:
                                                                        * self.complexes.actual_values))
 
     def compute_perinuclear_crown(self) -> float:
-        protein_bulk = float(3.66 * self.monomers.actual_values[0] + 6.98 * self.dimers.actual_values[0]
-                             + self.apoe_proteins.actual_values[0] + 4.66 * self.complexes.actual_values[0])
-        return protein_bulk
+        bulk_nucleus = self.compute_bulk_on_nucleus()
+        # To get the crown, we normalize the bulk according to the mean bulk everywhere
+        mean_bulk_everywhere = (3.66 * np.mean(self.monomers.actual_values) + 6.98 * np.mean(self.dimers.actual_values)
+                                + np.mean(self.apoe_proteins.actual_values)
+                                + 4.66 * np.mean(self.complexes.actual_values))
+        return bulk_nucleus - mean_bulk_everywhere
+
+    def compute_bulk_on_nucleus(self) -> float:
+        return float(3.66 * self.monomers.actual_values[0] + 6.98 * self.dimers.actual_values[0]
+                     + self.apoe_proteins.actual_values[0] + 4.66 * self.complexes.actual_values[0])
 
     def create_monomers_reaction_array(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate = self.fragmentation_parameter.over_time_values[time_simulation_index]
