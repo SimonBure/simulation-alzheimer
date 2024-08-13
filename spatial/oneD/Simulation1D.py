@@ -1,9 +1,10 @@
-import matplotlib.pyplot as plt
-import matplotlib.animation as anim
-from functools import partial
 import numpy as np
 from numpy import ndarray
 import scipy.sparse as sparse
+import math
+import matplotlib.pyplot as plt
+import matplotlib.animation as anim
+from functools import partial
 from scipy.sparse.linalg import factorized
 from spatial.oneD.OneDimSpace import SpatialSpace, TimeSpace
 from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
@@ -25,11 +26,11 @@ class Simulation1D:
 
     def __init__(self, space_length: float, nb_space_points: int, maximum_time: float, time_step: float):
         self.time = 0.
-        self.time_index = 0
+        self.time_index = 1
 
         self.spatial_space = SpatialSpace(space_length, nb_space_points)
 
-        nb_time_points = int(maximum_time / time_step)
+        nb_time_points = math.ceil(maximum_time / time_step)
         self.time_space = TimeSpace(maximum_time, nb_time_points)
 
         self.crown_density_over_time = np.zeros(nb_time_points)
@@ -68,7 +69,7 @@ class Simulation1D:
         (solver_natural, solver_during_antioxidant, solver_during_irradiation,
          solver_during_antioxidant_and_irradiation) = self.create_all_solvers()
 
-        while self.time < self.time_space.end:
+        while self.time <= self.time_space.end:
             dimers_next_density = self.atm_apoe_system.compute_dimers_next_density(self.time_index)
             apoe_next_density = self.atm_apoe_system.compute_apoe_next_density(self.time_index)
             complexes_next_density = self.atm_apoe_system.compute_complexes_next_density(self.time_index)
@@ -305,7 +306,7 @@ class Simulation1D:
     def plot_crown_density_over_time(self):
         fig, ax = plt.subplots()
 
-        ax.plot(self.time_space.space[:-1], self.crown_density_over_time[:-1], color='red')
+        ax.plot(self.time_space.space, self.crown_density_over_time, color='red')
 
         self.label_x_time_axis(ax)
 

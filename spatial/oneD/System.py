@@ -109,18 +109,19 @@ class ReactionDiffusionAtmApoeSystem:
 
     def compute_complexes_next_density(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate_complexes = self.fragmentation_parameter.over_time_values[time_simulation_index]
-        return (self.complexes.actual_values + self.time_space.step * (self.ka* self.monomers.actual_values
+        return (self.complexes.actual_values + self.time_space.step * (self.ka * self.monomers.actual_values
                                                                        * self.apoe_proteins.actual_values
                                                                        - fragmentation_rate_complexes
                                                                        * self.complexes.actual_values))
 
     def compute_perinuclear_crown(self) -> float:
         bulk_nucleus = self.compute_bulk_on_nucleus()
-        # To get the crown, we normalize the bulk according to the mean bulk everywhere
-        mean_bulk_everywhere = (3.66 * np.mean(self.monomers.actual_values) + 6.98 * np.mean(self.dimers.actual_values)
-                                + np.mean(self.apoe_proteins.actual_values)
-                                + 4.66 * np.mean(self.complexes.actual_values))
-        return bulk_nucleus - mean_bulk_everywhere
+        # To get the crown, we normalize the bulk according to the bulk of the initial conditions
+        initial_bulk_nucleus = float(3.66 * self.monomers.every_time_values[0][0]
+                                     + 6.98 * self.dimers.every_time_values[0][0]
+                                     + self.apoe_proteins.every_time_values[0][0]
+                                     + 4.66 * self.complexes.every_time_values[0][0])
+        return bulk_nucleus - initial_bulk_nucleus
 
     def compute_bulk_on_nucleus(self) -> float:
         return float(3.66 * self.monomers.actual_values[0] + 6.98 * self.dimers.actual_values[0]
