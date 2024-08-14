@@ -328,6 +328,8 @@ class Simulation1D:
         fig, ax = plt.subplots()
         plot, = ax.plot(self.spatial_space.space, self.atm_apoe_system.dimers.every_time_values[0], color='crimson')
         ax.set_ylim(0, self.atm_apoe_system.dimers.every_time_values[-1].max() + 1)
+        self.label_x_time_axis(ax)
+        self.label_y_atm_dimers_density(ax)
 
         def animate(frame):
             plot.set_ydata(self.atm_apoe_system.dimers.every_time_values[frame])
