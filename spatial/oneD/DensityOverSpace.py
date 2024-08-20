@@ -12,9 +12,11 @@ class DensityOverSpace(abc.ABC):
 
     def __init__(self, initial_state: ndarray):
         self.actual_values = np.zeros(initial_state.shape)
-        np.copyto(self.actual_values, initial_state)
-
         self.next_values = np.zeros(initial_state.shape)
+
+        np.copyto(self.actual_values, initial_state)
+        np.copyto(self.next_values, initial_state)
+
 
     def setup_every_time_values(self, time_space: TimeSpace):
         self.every_time_values = np.zeros((time_space.nb_points, self.actual_values.shape[0]))

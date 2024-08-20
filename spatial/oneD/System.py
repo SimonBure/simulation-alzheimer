@@ -160,7 +160,7 @@ class ReactionDiffusionAtmApoeSystem:
                      self.compute_mass_from_density(self.complexes))  # kDa
 
     def compute_mass_from_density(self, density: DensityOverSpace) -> float:
-        return integrate.trapezoid(density.actual_values, self.spatial_space.space, self.spatial_space.step)
+        return float(integrate.trapezoid(density.actual_values, self.spatial_space.space, self.spatial_space.step))
 
     def set_next_values(self, monomers_next_values: ndarray, dimers_next_values: ndarray, apoe_next_values: ndarray,
                         complexes_next_values: ndarray):
