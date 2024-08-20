@@ -12,22 +12,22 @@ class DensityOverSpace(abc.ABC):
 
     def __init__(self, initial_state: ndarray):
         self.actual_values = np.zeros(initial_state.shape)
-        self.actual_values[:] = initial_state  # using slice to copy the values and not simply pointing to it
+        np.copyto(self.actual_values, initial_state)
 
         self.next_values = np.zeros(initial_state.shape)
 
     def setup_every_time_values(self, time_space: TimeSpace):
         self.every_time_values = np.zeros((time_space.nb_points, self.actual_values.shape[0]))
-        self.every_time_values[0, :] = self.actual_values
+        np.copyto(self.every_time_values[0], self.actual_values)
 
     def set_next_values(self, next_values: ndarray):
-        self.next_values[:] = next_values
+        np.copyto(self.next_values, next_values)
 
     def update_values_for_next_step(self):
-        self.actual_values[:] = self.next_values  # using slice to copy the values and not simply pointing to it
+        np.copyto(self.actual_values, self.next_values)
 
     def fill_every_time_values(self, time_index: int):
-        self.every_time_values[time_index, :] = self.next_values
+        np.copyto(self.every_time_values[time_index], self.next_values)
 
 
 # Shallow class for code clarity
