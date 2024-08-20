@@ -100,4 +100,4 @@ class PermeabilityParameter:
                 self.statin_impact_over_time[start:end + 1] = self.statin_impact
 
     def get_permeability_depending_on_bulk(self, bulk: float, time_index: int) -> float:
-        return (self.ordinate - self.abscissa * bulk) * (1 + float(self.statin_impact_over_time[time_index]))
+        return max((self.ordinate - self.abscissa * bulk) * (1 + float(self.statin_impact_over_time[time_index])), 0)
