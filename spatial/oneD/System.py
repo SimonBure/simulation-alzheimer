@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import ndarray
-from spatial.oneD.DensityOverSpace import AtmMonomers, AtmDimers, ApoeProteins, ApoeAtmComplexes
+from scipy import integrate
+from spatial.oneD.DensityOverSpace import DensityOverSpace, AtmMonomers, AtmDimers, ApoeProteins, ApoeAtmComplexes
 from spatial.oneD.Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
 from spatial.oneD.OneDimSpace import TimeSpace, SpatialSpace
 from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
@@ -96,9 +97,9 @@ class ReactionDiffusionAtmApoeSystem:
     def compute_dimers_next_density(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate_dimers = (self.ratio_fragmentation_dimers_complexes
                                      * self.fragmentation_parameter.over_time_values[time_simulation_index])
-        return (self.dimers.actual_values + self.time_space.step * (0.5 * self.k * self.monomers.actual_values
-                                                                    - fragmentation_rate_dimers
-                                                                    * self.dimers.actual_values))
+        return (self.dimers.actual_values + self.time_space.step * (0.5 * self.k * self.monomers.actual_values ** 2
+                                                                    - fragmentation_rate_dimers *
+                                                                    self.dimers.actual_values))
 
     def compute_apoe_next_density(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate_complexes = self.fragmentation_parameter.over_time_values[time_simulation_index]
@@ -114,18 +115,23 @@ class ReactionDiffusionAtmApoeSystem:
                                                                        - fragmentation_rate_complexes
                                                                        * self.complexes.actual_values))
 
-    def compute_perinuclear_crown(self) -> float:
-        bulk_nucleus = self.compute_bulk_on_nucleus()
-        # To get the crown, we normalize the bulk according to the bulk of the initial conditions
+    def compute_nucleus_permeability(self, time_index: int, dimers_next: ndarray, apoe_next: ndarray,
+                                     complexes_next: ndarray) -> float:
+        bulk = self.compute_bulk_on_nucleus(dimers_next, apoe_next, complexes_next)
+        return self.permeability_parameter.get_permeability_depending_on_bulk(bulk, time_index)
+
+    def compute_perinuclear_crown(self, dimers_next: ndarray, apoe_next: ndarray, complexes_next: ndarray) -> float:
+        bulk_nucleus = self.compute_bulk_on_nucleus(dimers_next, apoe_next, complexes_next)
+        # To get the crown, we normalize the bulk according to the bulk at the initial conditions
         initial_bulk_nucleus = float(3.66 * self.monomers.every_time_values[0][0]
                                      + 6.98 * self.dimers.every_time_values[0][0]
                                      + self.apoe_proteins.every_time_values[0][0]
                                      + 4.66 * self.complexes.every_time_values[0][0])
         return bulk_nucleus - initial_bulk_nucleus
 
-    def compute_bulk_on_nucleus(self) -> float:
-        return float(3.66 * self.monomers.actual_values[0] + 6.98 * self.dimers.actual_values[0]
-                     + self.apoe_proteins.actual_values[0] + 4.66 * self.complexes.actual_values[0])
+    @staticmethod
+    def compute_bulk_on_nucleus(dimers_next: ndarray, apoe_next: ndarray, complexes_next: ndarray) -> float:
+        return float(2 * dimers_next[0] + apoe_next[0] + 2 * complexes_next[0])
 
     def create_monomers_reaction_array(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate = self.fragmentation_parameter.over_time_values[time_simulation_index]
@@ -143,15 +149,18 @@ class ReactionDiffusionAtmApoeSystem:
         return reaction_array
 
     def compute_system_mass(self) -> float:
-        mass_atm = 350  # kDa
-        mass_apoe = 34  # kDa
-        ratio_masses = mass_atm / mass_apoe
-        total_mass = (ratio_masses * np.mean(self.monomers.actual_values)
-                      + 2 * ratio_masses * np.mean(self.dimers.actual_values)
-                      + np.mean(self.apoe_proteins.actual_values)
-                      + (1 + ratio_masses) * np.mean(self.complexes.actual_values)
-                      ) * self.spatial_space.end
-        return total_mass
+        return self.compute_atm_mass() + self.compute_apoe_mass()
+
+    def compute_atm_mass(self) -> float:
+        return 350 * (self.compute_mass_from_density(self.monomers) + 2 * self.compute_mass_from_density(self.dimers)
+                      + self.compute_mass_from_density(self.complexes))  # kDa
+
+    def compute_apoe_mass(self) -> float:
+        return 34 * (self.compute_mass_from_density(self.apoe_proteins) +
+                     self.compute_mass_from_density(self.complexes))  # kDa
+
+    def compute_mass_from_density(self, density: DensityOverSpace) -> float:
+        return integrate.trapezoid(density.actual_values, self.spatial_space.space, self.spatial_space.step)
 
     def set_next_values(self, monomers_next_values: ndarray, dimers_next_values: ndarray, apoe_next_values: ndarray,
                         complexes_next_values: ndarray):
