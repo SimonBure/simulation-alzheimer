@@ -43,7 +43,8 @@ class TransportParameter(DiffusionParameter):
         self.irradiation_value = irradiation_value
 
     def setup_values_over_space(self, spatial_space: SpatialSpace, space_constant_value: float):
-        self.over_space_values = np.exp(- space_constant_value * spatial_space.space)
+        self.over_space_values = np.exp(- space_constant_value * np.linspace(0, 1, spatial_space.nb_points))
+        self.over_space_values[self.over_space_values < 1e-2] = 0
 
     def impact_irradiation(self, irradiation: Irradiation, time_space: TimeSpace):
         exp_start_indexes, exp_end_indexes = irradiation.get_indexes_starting_and_ending_times(time_space)
