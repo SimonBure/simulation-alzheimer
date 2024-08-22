@@ -4,7 +4,6 @@ import scipy.sparse as sparse
 import math
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
-from functools import partial
 from scipy.sparse.linalg import factorized
 from spatial.oneD.OneDimSpace import SpatialSpace, TimeSpace
 from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
@@ -21,13 +20,16 @@ class Simulation1D:
 
     atm_apoe_system: ReactionDiffusionAtmApoeSystem
     crown_density_over_time: ndarray
-    total_mass: ndarray
+
+    masses_atm: ndarray
+
+    atm_flux_nucleus: ndarray
 
     experiments: tuple[Antioxidant, Irradiation, Statin]
 
     def __init__(self, space_length: float, nb_space_points: int, maximum_time: float, time_step: float):
         self.time = 0.
-        self.time_index = 1
+        self.time_index = 0
 
         self.spatial_space = SpatialSpace(space_length, nb_space_points)
 
@@ -35,7 +37,8 @@ class Simulation1D:
         self.time_space = TimeSpace(maximum_time, nb_time_points)
 
         self.crown_density_over_time = np.zeros(nb_time_points)
-        self.total_mass = np.zeros(nb_time_points)
+        self.masses_atm = np.zeros(nb_time_points)
+        self.atm_flux_nucleus = np.zeros(nb_time_points)
 
         self.atm_apoe_system = ReactionDiffusionAtmApoeSystem()
         self.atm_apoe_system.setup_spaces(self.spatial_space, self.time_space)
@@ -71,13 +74,19 @@ class Simulation1D:
         (solver_natural, solver_during_antioxidant, solver_during_irradiation,
          solver_during_antioxidant_and_irradiation) = self.create_all_solvers()
 
-        while self.time <= self.time_space.end:
+        while self.time_index < self.time_space.nb_points:
+            self.atm_apoe_system.update_for_next_step()
+
             dimers_next_density = self.atm_apoe_system.compute_dimers_next_density(self.time_index)
             apoe_next_density = self.atm_apoe_system.compute_apoe_next_density(self.time_index)
             complexes_next_density = self.atm_apoe_system.compute_complexes_next_density(self.time_index)
 
-            if self.is_migration_inside_nucleus_possible():
-                right_solver = self.create_monomers_flux_solver()
+            flux_in_nucleus = self.compute_monomers_flux_in_nucleus(dimers_next_density, apoe_next_density,
+                                                                    complexes_next_density)
+            self.fill_flux_nucleus(flux_in_nucleus)
+
+            if self.is_migration_inside_nucleus_possible(flux_in_nucleus):
+                right_solver = self.create_monomers_flux_solver(flux_in_nucleus)
             else:
                 if self.is_antioxidant_now():
                     if self.is_irradiation_now():
@@ -85,20 +94,27 @@ class Simulation1D:
                     else:
                         right_solver = solver_during_antioxidant
                 else:
-                    if self.is_antioxidant_now():
+                    if self.is_irradiation_now():
                         right_solver = solver_during_irradiation
                     else:
                         right_solver = solver_natural
 
             monomers_next_density = self.compute_monomers_next_density(right_solver)
 
+            atm_crown = self.atm_apoe_system.compute_perinuclear_crown(dimers_next_density, apoe_next_density,
+                                                                       complexes_next_density)
+            self.fill_crown_density(atm_crown)
+
+            mass_atm = self.atm_apoe_system.compute_atm_mass()
+            self.fill_atm_mass(mass_atm)
+
+            mass_atm_lost = self.compute_atm_loss()
+            dimers_next_density += self.produce_new_dimers(mass_atm_lost)
+
             self.atm_apoe_system.set_next_values(monomers_next_density, dimers_next_density, apoe_next_density,
                                                  complexes_next_density)
-            self.atm_apoe_system.fill_every_time_values(self.time_index)
-            self.atm_apoe_system.update_for_next_step()
 
-            self.fill_crown_density(self.time_index)
-            self.fill_total_mass(self.time_index)
+            self.atm_apoe_system.fill_every_time_values(self.time_index)
 
             self.time_index += 1
             self.time += self.time_space.step
@@ -113,51 +129,51 @@ class Simulation1D:
 
     def create_natural_system_solver(self) -> factorized:
         diagonals = self.create_diagonals(self.atm_apoe_system.diffusion_parameter.natural_value,
-                                          self.atm_apoe_system.transport_parameter.natural_value)
+                                          self.atm_apoe_system.transport_parameter.natural_value, 0)
         return self.create_solver_from_diagonals(diagonals)
 
     def create_antioxidant_system_solver(self) -> factorized:
         diagonals = self.create_diagonals(self.atm_apoe_system.diffusion_parameter.antioxidant_value,
-                                          self.atm_apoe_system.transport_parameter.antioxidant_value)
+                                          self.atm_apoe_system.transport_parameter.antioxidant_value, 0)
         return self.create_solver_from_diagonals(diagonals)
 
     def create_irradiation_system_solver(self) -> factorized:
         diagonals = self.create_diagonals(self.atm_apoe_system.diffusion_parameter.natural_value,
-                                          self.atm_apoe_system.transport_parameter.irradiation_value)
+                                          self.atm_apoe_system.transport_parameter.irradiation_value, 0)
         return self.create_solver_from_diagonals(diagonals)
 
     def create_antioxidant_irradiation_system_solver(self) -> factorized:
         diagonals = self.create_diagonals(self.atm_apoe_system.diffusion_parameter.antioxidant_value,
-                                          self.atm_apoe_system.transport_parameter.irradiation_value)
+                                          self.atm_apoe_system.transport_parameter.irradiation_value, 0)
         return self.create_solver_from_diagonals(diagonals)
 
-    def create_monomers_flux_solver(self) -> factorized:
+    def create_monomers_flux_solver(self, flux_in_nucleus: float) -> factorized:
         diffusion_coefficient = self.atm_apoe_system.diffusion_parameter.get_value_at_specific_time(self.time_index)
         transport_coefficient = self.atm_apoe_system.transport_parameter.get_value_at_specific_time(self.time_index)
-        diagonals = self.create_diagonals(diffusion_coefficient, transport_coefficient)
+        diagonals = self.create_diagonals(diffusion_coefficient, transport_coefficient, flux_in_nucleus)
         return self.create_solver_from_diagonals(diagonals)
 
     def create_solver_from_diagonals(self, diagonals: tuple[ndarray, ndarray, ndarray]) -> factorized:
         sparse_system_matrix = self.create_sparse_system_matrix_from_diagonals(diagonals)
         return factorized(sparse_system_matrix)
 
-    def create_diagonals(self, diffusion: float, transport: float) -> tuple[ndarray, ndarray, ndarray]:
+    def create_diagonals(self, diffusion: float, transport: float, flux_in_nucleus) -> tuple[ndarray, ndarray, ndarray]:
         diagonal, lower, upper = self.setup_diagonals()
 
         f = self.compute_fourier_number()
         p = self.compute_peclet_number()
-        nucleus_permeability = self.compute_nucleus_permeability()
 
-        diagonal[:] = 1 + 2 * diffusion * f + self.atm_apoe_system.transport_parameter.over_space_values * p
+        transport_over_space = transport * self.atm_apoe_system.transport_parameter.over_space_values
+
+        diagonal[:] = 1 + 2 * diffusion * f + transport_over_space * p
         lower[:] = - f * diffusion
-        upper[:] = - f * diffusion - self.atm_apoe_system.transport_parameter.over_space_values[1:] * p
+        upper[:] = - f * diffusion - transport_over_space[1:] * p
 
         # Robin-Neumann boundary conditions
-        diagonal[0] = 1 + self.spatial_space.step * nucleus_permeability / diffusion
-        diagonal[-1] = -1
-        lower[-1] = (1 - self.spatial_space.step *
-                     self.atm_apoe_system.transport_parameter.over_space_values[-1] / diffusion)
+        diagonal[0] = 1 + self.spatial_space.step * flux_in_nucleus / diffusion
         upper[0] = - (1 + self.spatial_space.step * transport / diffusion)
+        diagonal[-1] = -1
+        lower[-1] = (1 - self.spatial_space.step * transport_over_space[-1] / diffusion)
 
         return diagonal, lower, upper
 
@@ -173,16 +189,15 @@ class Simulation1D:
     def compute_peclet_number(self) -> float:
         return self.time_space.step / self.spatial_space.step
 
-    def compute_nucleus_permeability(self) -> float:
-        if self.is_simulation_started():
-            bulk_on_nucleus = self.atm_apoe_system.compute_bulk_on_nucleus()
-            return self.atm_apoe_system.permeability_parameter.get_permeability_depending_on_bulk(bulk_on_nucleus,
-                                                                                                  self.time_index)
-        else:
-            return 0
+    def compute_monomers_flux_in_nucleus(self, dimers_next: ndarray, apoe_next: ndarray,
+                                         complexes_next: ndarray) -> float:
+        return float(self.atm_apoe_system.monomers.actual_values[0] *
+                     self.atm_apoe_system.compute_nucleus_permeability(self.time_index, dimers_next, apoe_next,
+                                                                       complexes_next)
+                     )
 
     def is_simulation_started(self) -> bool:
-        return self.time == 0
+        return self.time > 0
 
     def create_sparse_system_matrix_from_diagonals(self, diagonals: tuple[ndarray, ndarray, ndarray]) -> (
             sparse.csc_array):
@@ -190,11 +205,6 @@ class Simulation1D:
                                            shape=(self.spatial_space.nb_points, self.spatial_space.nb_points),
                                            format='csc')
         return system_matrix
-
-    def compute_monomers_next_density(self, solver: factorized) -> ndarray:
-        monomers_reaction = self.atm_apoe_system.create_monomers_reaction_array(self.time_index)
-        next_values = solver(self.atm_apoe_system.monomers.actual_values + self.time_space.step * monomers_reaction)
-        return next_values
 
     def is_antioxidant_now(self) -> bool:
         return self.is_experiment_now(0)
@@ -212,14 +222,29 @@ class Simulation1D:
                 return True
         return False
 
-    def is_migration_inside_nucleus_possible(self) -> bool:
-        return self.compute_nucleus_permeability() > 0
+    @staticmethod
+    def is_migration_inside_nucleus_possible(flux: float) -> bool:
+        return flux > 0
 
-    def fill_crown_density(self, time_index: int):
-        self.crown_density_over_time[time_index] = self.atm_apoe_system.compute_perinuclear_crown()
+    def compute_monomers_next_density(self, solver: factorized) -> ndarray:
+        monomers_reaction = self.atm_apoe_system.create_monomers_reaction_array(self.time_index)
+        next_values = solver(self.atm_apoe_system.monomers.actual_values + self.time_space.step * monomers_reaction)
+        return next_values
 
-    def fill_total_mass(self, time_index: int):
-        self.total_mass[time_index] = self.atm_apoe_system.compute_system_mass()
+    def compute_atm_loss(self) -> float:
+        return float(self.masses_atm[self.time_index - 1] - self.masses_atm[self.time_index])
+
+    def produce_new_dimers(self, mass_atm_lost: float) -> float:
+        return self.spatial_space.step * mass_atm_lost / self.spatial_space.end
+
+    def fill_crown_density(self, crown_density: float):
+        self.crown_density_over_time[self.time_index] = crown_density
+
+    def fill_flux_nucleus(self, flux_in_nucleus: float):
+        self.atm_flux_nucleus[self.time_index] = flux_in_nucleus
+
+    def fill_atm_mass(self, atm_mass: float):
+        self.masses_atm[self.time_index] = atm_mass
 
     def plot_all_densities(self):
         fig, ax = plt.subplots()
@@ -236,24 +261,6 @@ class Simulation1D:
 
         plt.show()
 
-    def plot_atm_dimers_over_space(self):
-        fig, ax = plt.subplots()
-
-        self.plot_monomers_density_over_space(ax)
-
-        self.label_x_space_axis(ax)
-        self.label_y_atm_dimers_density(ax)
-
-        plt.show()
-
-    def plot_dimers_density_over_space(self, ax: plt.Axes):
-        ax.plot(self.spatial_space.space, self.atm_apoe_system.get_dimers(), color='crimson', label="$D$")
-
-    @staticmethod
-    def label_y_atm_dimers_density(ax: plt.Axes):
-        ax.set_ylabel("ATM dimers density", fontsize=12)
-        ax.set_ylim([0, None])
-
     def plot_monomers_over_space(self):
         fig, ax = plt.subplots()
 
@@ -264,29 +271,15 @@ class Simulation1D:
 
         plt.show()
 
-    def plot_monomers_density_over_space(self, ax: plt.Axes):
-        ax.plot(self.spatial_space.space, self.atm_apoe_system.get_monomers(), color='dodgerblue', label="$M$")
-
-    @staticmethod
-    def label_y_monomers_density(ax: plt.Axes):
-        ax.set_ylabel("ATM monomers density", fontsize=12)
-
-    def plot_complexes_over_space(self):
+    def plot_atm_dimers_over_space(self):
         fig, ax = plt.subplots()
 
-        self.plot_complexes_density_over_space(ax)
+        self.plot_dimers_density_over_space(ax)
 
         self.label_x_space_axis(ax)
-        self.label_y_complexes_density(ax)
+        self.label_y_atm_dimers_density(ax)
 
         plt.show()
-
-    def plot_complexes_density_over_space(self, ax: plt.Axes):
-        ax.plot(self.spatial_space.space, self.atm_apoe_system.get_complexes(), color='darkorange', label="$C$")
-
-    @staticmethod
-    def label_y_complexes_density(ax: plt.Axes):
-        ax.set_ylabel("ApoE-ATM Complexes density", fontsize=12)
 
     def plot_apoe_over_space(self):
         fig, ax = plt.subplots()
@@ -298,16 +291,52 @@ class Simulation1D:
 
         plt.show()
 
+    def plot_complexes_over_space(self):
+        fig, ax = plt.subplots()
+
+        self.plot_complexes_density_over_space(ax)
+
+        self.label_x_space_axis(ax)
+        self.label_y_complexes_density(ax)
+
+        plt.show()
+
+    def plot_monomers_density_over_space(self, ax: plt.Axes):
+        ax.plot(self.spatial_space.space, self.atm_apoe_system.get_monomers(), color='dodgerblue', label="$M$")
+
+    def plot_dimers_density_over_space(self, ax: plt.Axes):
+        ax.plot(self.spatial_space.space, self.atm_apoe_system.get_dimers(), color='crimson', label="$D$")
+
     def plot_apoe_density_over_space(self, ax: plt.Axes):
         ax.plot(self.spatial_space.space, self.atm_apoe_system.get_apoe(), color='magenta', label="$A$")
+
+    def plot_complexes_density_over_space(self, ax: plt.Axes):
+        ax.plot(self.spatial_space.space, self.atm_apoe_system.get_complexes(), color='darkorange', label="$C$")
+
+    @staticmethod
+    def label_y_monomers_density(ax: plt.Axes):
+        ax.set_ylabel("ATM monomers density", fontsize=12)
+
+    @staticmethod
+    def label_y_atm_dimers_density(ax: plt.Axes):
+        ax.set_ylabel("ATM dimers density", fontsize=12)
+        ax.set_ylim([0, None])
 
     @staticmethod
     def label_y_apoe_density(ax: plt.Axes):
         ax.set_ylabel("ApoE protein density", fontsize=12)
 
     @staticmethod
+    def label_y_complexes_density(ax: plt.Axes):
+        ax.set_ylabel("ApoE-ATM Complexes density", fontsize=12)
+
+    @staticmethod
     def label_x_space_axis(ax: plt.Axes):
         ax.set_xlabel("Space", fontsize=12)
+
+    @staticmethod
+    def label_x_time_axis(ax: plt.Axes):
+        ax.set_xlabel("Time", fontsize=12)
 
     def plot_crown_density_over_time(self):
         fig, ax = plt.subplots()
@@ -320,15 +349,31 @@ class Simulation1D:
 
         plt.show()
 
-    @staticmethod
-    def label_x_time_axis(ax: plt.Axes):
-        ax.set_xlabel("Time", fontsize=12)
+    def plot_system_mass_over_time(self):
+        fig, ax = plt.subplots()
+
+        ax.plot(self.time_space.space, self.masses_atm, color="black")
+
+        self.label_x_time_axis(ax)
+        ax.set_ylabel("Masse of ATM proteins in the cell (kDa)", fontsize=12)
+
+        plt.show()
+
+    def plot_flux_nucleus_over_time(self):
+        fig, ax = plt.subplots()
+
+        ax.plot(self.time_space.space, self.atm_flux_nucleus)
+
+        self.label_x_time_axis(ax)
+        ax.set_ylabel("ATM flux in the nucleus")
+
+        plt.show()
 
     def plot_atm_dimers_over_space_and_time(self):
         fig, ax = plt.subplots()
         plot, = ax.plot(self.spatial_space.space, self.atm_apoe_system.dimers.every_time_values[0], color='crimson')
         ax.set_ylim(0, self.atm_apoe_system.dimers.every_time_values[-1].max() + 1)
-        self.label_x_time_axis(ax)
+        self.label_x_space_axis(ax)
         self.label_y_atm_dimers_density(ax)
 
         def animate(frame):
@@ -338,11 +383,3 @@ class Simulation1D:
         animation = anim.FuncAnimation(fig, animate, frames=self.time_space.nb_points, blit=True, interval=50)
 
         return animation
-
-    def plot_system_mass_over_time(self):
-        fig, ax = plt.subplots()
-
-        ax.plot(self.time_space.space, self.total_mass)
-
-        self.label_x_time_axis(ax)
-        ax.set_ylabel("Total mass in the cell (kDa)")
