@@ -123,10 +123,9 @@ class ReactionDiffusionAtmApoeSystem:
     def compute_perinuclear_crown(self, dimers_next: ndarray, apoe_next: ndarray, complexes_next: ndarray) -> float:
         bulk_nucleus = self.compute_bulk_on_nucleus(dimers_next, apoe_next, complexes_next)
         # To get the crown, we normalize the bulk according to the bulk at the initial conditions
-        initial_bulk_nucleus = float(3.66 * self.monomers.every_time_values[0][0]
-                                     + 6.98 * self.dimers.every_time_values[0][0]
-                                     + self.apoe_proteins.every_time_values[0][0]
-                                     + 4.66 * self.complexes.every_time_values[0][0])
+        initial_bulk_nucleus = self.compute_bulk_on_nucleus(self.dimers.every_time_values[0],
+                                                            self.apoe_proteins.every_time_values[0],
+                                                            self.complexes.every_time_values[0])
         return bulk_nucleus - initial_bulk_nucleus
 
     @staticmethod
