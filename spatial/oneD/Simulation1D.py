@@ -5,6 +5,7 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 from scipy.sparse.linalg import factorized
+import gc
 from spatial.oneD.OneDimSpace import SpatialSpace, TimeSpace
 from spatial.oneD.Experiment import Antioxidant, Irradiation, Statin
 from spatial.oneD.Parameter import DiffusionParameter, TransportParameter, FragmentationParameter, PermeabilityParameter
@@ -118,6 +119,8 @@ class Simulation1D:
 
             self.time_index += 1
             self.time += self.time_space.step
+
+            gc.collect()  # reduce memory usage
 
     def create_all_solvers(self) -> tuple[factorized, factorized, factorized, factorized]:
         solver_natural = self.create_natural_system_solver()

@@ -17,7 +17,6 @@ class DensityOverSpace(abc.ABC):
         np.copyto(self.actual_values, initial_state)
         np.copyto(self.next_values, initial_state)
 
-
     def setup_every_time_values(self, time_space: TimeSpace):
         self.every_time_values = np.zeros((time_space.nb_points, self.actual_values.shape[0]))
         np.copyto(self.every_time_values[0], self.actual_values)
