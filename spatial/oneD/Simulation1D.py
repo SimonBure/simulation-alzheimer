@@ -120,8 +120,6 @@ class Simulation1D:
             self.time_index += 1
             self.time += self.time_space.step
 
-            gc.collect()  # reduce memory usage
-
     def create_all_solvers(self) -> tuple[factorized, factorized, factorized, factorized]:
         solver_natural = self.create_natural_system_solver()
         solver_during_antioxidant = self.create_antioxidant_system_solver()
