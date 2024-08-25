@@ -130,7 +130,7 @@ class ReactionDiffusionAtmApoeSystem:
 
     @staticmethod
     def compute_bulk_on_nucleus(dimers_next: ndarray, apoe_next: ndarray, complexes_next: ndarray) -> float:
-        return float(2 * dimers_next[0] + apoe_next[0] + 2 * complexes_next[0])
+        return float(6.98 * dimers_next[0] + apoe_next[0] + 4.66 * complexes_next[0])
 
     def create_monomers_reaction_array(self, time_simulation_index: int) -> ndarray:
         fragmentation_rate = self.fragmentation_parameter.over_time_values[time_simulation_index]
