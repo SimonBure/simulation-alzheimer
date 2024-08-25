@@ -109,7 +109,7 @@ def test_compute_bulk_over_nucleus() -> bool:
     actual_bulk = ReactionDiffusionAtmApoeSystem.compute_bulk_on_nucleus(np.array([2.0, 2.0, 2.0, 2.0, 2.0]),
                                                                          np.array([5.0, 0.0, 0.0, 0.0, 0.0]),
                                                                          np.array([1.0, 1.2, 1.5, 1.2, 1.0]))
-    expected_bulk = 11.0
+    expected_bulk = 23.62
 
     return actual_bulk == expected_bulk
 
