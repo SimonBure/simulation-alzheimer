@@ -366,7 +366,7 @@ class Simulation1D:
         ax.plot(self.time_space.space, self.atm_flux_nucleus)
 
         self.label_x_time_axis(ax)
-        ax.set_ylabel("ATM flux in the nucleus")
+        ax.set_ylabel("ATM flux in the nucleus", fontsize=12)
 
         plt.show()
 
