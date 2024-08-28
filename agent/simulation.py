@@ -40,17 +40,12 @@ if __name__ == "__main__":
 
         grid.clear_cells()
 
-        # for p in particles:
-        #     p.move()
-        #     p.draw(screen)
-
         for a in atms:
-            a.move()
             a.brownian_motion()
+            a.move()
             a.draw(screen)
 
         for apoe in apoes:
-            apoe.move()
             apoe.draw(screen)
 
         # grid.fill_cells_with_particles(particles)

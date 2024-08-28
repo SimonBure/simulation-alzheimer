@@ -1,3 +1,5 @@
+import random
+
 import pygame
 import abc
 import math
@@ -25,6 +27,10 @@ class Particle(abc.ABC):
     def move(self):
         self.x += self.vx
         self.y += self.vy
+
+    def brownian_motion(self):
+        self.vx = random.uniform(-1, 1)
+        self.vy = random.uniform(-1, 1)
 
     def draw(self, screen):
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
@@ -111,13 +117,20 @@ class Particle(abc.ABC):
 class AtmProtein(Particle):
     def __init__(self, x: float, y: float, vx: float, vy: float):
         super().__init__(x, y, vx, vy)
-        base_protein = ApoeProtein(x, y, vx, vy)
+        base_protein = ApoeProtein(x, y, vx, vy, 0)
         self.radius = base_protein.radius * 1.5322
+        del base_protein
         self.color = pygame.color.Color("red")
 
 
 class ApoeProtein(Particle):
-    def __init__(self, x: float, y: float, vx: float, vy: float):
+    space_limit: float
+
+    def __init__(self, x: float, y: float, vx: float, vy: float, space_limit: float):
         super().__init__(x, y, vx, vy)
         self.radius = 3.
         self.color = pygame.color.Color("blue")
+        self.space_limit = space_limit
+
+    def is_collision_on_left_border(self) -> bool:
+        return self.x - self.radius < self.space_limit
