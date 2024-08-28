@@ -1,5 +1,5 @@
 import random
-
+import numpy as np
 import pygame
 import abc
 import math
@@ -11,7 +11,7 @@ class Particle(abc.ABC):
     radius: float
     vx: float
     vy: float
-    color: pygame.color.Color
+    color: pygame.color.Color = pygame.color.Color("black")
 
     def __init__(self, x: float, y: float, vx: float, vy: float):
         self.x = x
@@ -19,7 +19,6 @@ class Particle(abc.ABC):
         self.radius = 5.
         self.vx = vx
         self.vy = vy
-        self.color = pygame.color.Color("black")
 
     def __str__(self):
         return f"Particle in ({self.x}, {self.y})"
@@ -28,12 +27,8 @@ class Particle(abc.ABC):
         self.x += self.vx
         self.y += self.vy
 
-    def brownian_motion(self):
-        self.vx = random.uniform(-1, 1)
-        self.vy = random.uniform(-1, 1)
-
     def draw(self, screen):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
 
     def compute_distance(self, particle: 'Particle') -> float:
         return math.sqrt((particle.x - self.x) ** 2 + (particle.y - self.y) ** 2)
@@ -115,12 +110,19 @@ class Particle(abc.ABC):
 
 
 class AtmProtein(Particle):
-    def __init__(self, x: float, y: float, vx: float, vy: float):
+    param_transport_nucleus: tuple
+
+    def __init__(self, x: float, y: float, vx: float, vy: float, param_transport_nucleus: tuple):
         super().__init__(x, y, vx, vy)
-        base_protein = ApoeProtein(x, y, vx, vy, 0)
+        base_protein = ApoeProtein(x, y, vx, vy, 0)  # atm radius is based on apoe radius
         self.radius = base_protein.radius * 1.5322
         del base_protein
+        self.param_transport_nucleus = param_transport_nucleus
         self.color = pygame.color.Color("red")
+
+    def brownian_motion_with_transport(self):
+        self.vx = 2 * np.random.beta(self.param_transport_nucleus[0], self.param_transport_nucleus[1]) - 1
+        self.vy = random.uniform(-1, 1)
 
 
 class ApoeProtein(Particle):
