@@ -1,6 +1,6 @@
-import math
 from agent.Cell import Cell, BorderCell
-from agent.Particle import Particle
+from agent.Particle import Particle, AtmProtein, ApoeProtein
+from agent.Dimer import Dimer
 
 
 class Grid:
@@ -70,7 +70,8 @@ class Grid:
         for b_cell in self.border_cells:
             b_cell.collision_on_border(self.width, self.height)
 
-    def collision_inside_grid(self):
+    def collision_inside_grid(self, complexes: list[Dimer], atms: list[AtmProtein], apoes: list[ApoeProtein],
+                              dimer_formation_proba: float, complex_formation_proba: float):
         for line in self.cell_grid:
             for cell in line:
-                cell.collisions_inside()
+                cell.collisions_inside(complexes, atms, apoes, dimer_formation_proba, complex_formation_proba)

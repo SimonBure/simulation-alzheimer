@@ -112,9 +112,9 @@ class Particle(abc.ABC):
 class AtmProtein(Particle):
     param_transport_nucleus: tuple
 
-    def __init__(self, x: float, y: float, vx: float, vy: float, param_transport_nucleus: tuple):
-        super().__init__(x, y, vx, vy)
-        base_protein = ApoeProtein(x, y, vx, vy, 0)  # atm radius is based on apoe radius
+    def __init__(self, x: float, y: float, param_transport_nucleus: tuple):
+        super().__init__(x, y, random.uniform(1, -1), random.uniform(1, -1))
+        base_protein = ApoeProtein(x, y, 0)  # atm radius is based on apoe radius
         self.radius = base_protein.radius * 1.5322
         del base_protein
         self.param_transport_nucleus = param_transport_nucleus
@@ -128,8 +128,8 @@ class AtmProtein(Particle):
 class ApoeProtein(Particle):
     space_limit: float
 
-    def __init__(self, x: float, y: float, vx: float, vy: float, space_limit: float):
-        super().__init__(x, y, vx, vy)
+    def __init__(self, x: float, y: float, space_limit: float):
+        super().__init__(x, y, 0, 0)
         self.radius = 3.
         self.color = pygame.color.Color("blue")
         self.space_limit = space_limit
