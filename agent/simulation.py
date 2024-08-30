@@ -4,7 +4,7 @@ import pygame
 import matplotlib.pyplot as plt
 import numpy as np
 from agent.Particle import AtmProtein, ApoeProtein
-from agent.Dimer import Dimer, AtmDimer, AtmApoeComplex
+from agent.Dimer import Dimer, AtmDimer
 from Grid import Grid
 
 
@@ -50,19 +50,17 @@ if __name__ == "__main__":
     fragmentation_irradiation_proba = 0.99
     # Parameters of the beta-function used for the bias toward the nucleus.
     param_transport_nucl = alpha, beta = 1.5, 1  # the stronger alpha, the stronger the transport
-    start_irradiation, end_irradiation = 10, 11
+    start_irradiation, end_irradiation = 5, 7
 
     # Initial conditions
-    # atms = [AtmProtein(random.randint(0, width - range_apoe), random.randint(0, height),
-    #                    param_transport_nucl) for _ in range(1000)]
     atms: list[AtmProtein] = []
 
-    apoes = [ApoeProtein(random.randint(width - range_apoe, width), random.randint(0, height), width - range_apoe)
+    apoes = [ApoeProtein(random.randint(width - range_apoe, width - 10), random.randint(0, height), width - range_apoe)
              for _ in range(100)]
 
     dimers = initialize_dimers(width, height, range_apoe, initial_dimers_nb)
-    # dimers = []
 
+    nb_atm_in_nucleus = 0
     nb_atm_in_nucleus_over_time = []
 
     clock = pygame.time.Clock()
@@ -91,7 +89,6 @@ if __name__ == "__main__":
 
         grid.clear_cells()
 
-        nb_atm_in_nucleus = 0
         for a in atms:
             a.brownian_motion_with_transport()
             a.move()
